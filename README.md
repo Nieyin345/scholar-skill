@@ -93,17 +93,24 @@ curl -fsSL https://raw.githubusercontent.com/Nieyin345/scholar-skill/main/instal
 ```
 
 ```powershell
-# Windows（PowerShell 5.1+ / 7+）
-irm https://raw.githubusercontent.com/Nieyin345/scholar-skill/main/install.ps1 | iex -Args "--agent", "auto"
+# Windows（PowerShell 5.1+ / 7+，默认 --agent auto，无需参数）
+irm https://raw.githubusercontent.com/Nieyin345/scholar-skill/main/install.ps1 | iex
+
+# 需要指定参数时（例如自定义安装目录），用以下方式：
+$f = Join-Path $env:TEMP 'scholar-install.ps1'
+irm https://raw.githubusercontent.com/Nieyin345/scholar-skill/main/install.ps1 -OutFile $f
+& $f -Agent custom -TargetDir D:\path\to\skills
 ```
 
-参数说明（两脚本一致）：
+参数说明（bash 用 `--xx`，PowerShell 用 `-Xx`，含义一致）：
 
-| 参数 | 取值 | 说明 |
+| 参数（bash / PowerShell） | 取值 | 说明 |
 |------|------|------|
-| `--agent` | `auto`（默认）/ `codex` / `claude` / `cursor` / `custom` | 安装到哪个 Agent；`auto` 自动检测已安装的 Agent 并全部安装 |
-| `--target <dir>` | 任意目录 | 与 `--agent custom` 搭配：安装到自定义目录 |
-| `--repo <url>` | Git 仓库地址 | 自定义下载源（默认本仓库） |
+| `--agent` / `-Agent` | `auto`（默认）/ `codex` / `claude` / `cursor` / `custom` | 安装到哪个 Agent；`auto` 自动检测已安装的 Agent 并全部安装 |
+| `--target <dir>` / `-TargetDir <dir>` | 任意目录 | 与 `--agent custom` 搭配：安装到自定义目录 |
+| `--repo <url>` / `-RepoUrl <url>` | Git 仓库地址 | 自定义下载源（默认本仓库） |
+
+> 注意：PowerShell 的 `iex`（Invoke-Expression）**没有 `-Args` 参数**，`irm ... | iex -Args ...` 会报错；无参数时默认就是 `auto`，需要传参请用上面的 `-OutFile` + `& $f` 方式。
 
 安装位置：
 

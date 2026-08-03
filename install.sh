@@ -31,21 +31,15 @@ done
 
 command -v git >/dev/null 2>&1 || { echo "ERROR: git is required."; exit 1; }
 
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
-echo ">> Cloning $REPO_URL ..."
-git clone --depth 1 "$REPO_URL" "$TMP/$SKILL_NAME"
-
-if [[ ! -f "$TMP/$SKILL_NAME/SKILL.md" ]]; then
-  echo "ERROR: no SKILL.md found in cloned repo root."; exit 1
-fi
-
 install_to() {
   local dest="$1"
   mkdir -p "$(dirname "$dest")"
   rm -rf "$dest"
-  cp -R "$TMP/$SKILL_NAME" "$dest"
-  echo ">> Installed scholar -> $dest"
+  git clone --depth 1 "$REPO_URL" "$dest"
+  if [[ ! -f "$dest/SKILL.md" ]]; then
+    echo "ERROR: no SKILL.md found in $dest"; exit 1
+  fi
+  echo ">> Installed scholar -> $dest (git repo; git pull 即可更新)"
 }
 
 if [[ "$AGENT" == "custom" ]]; then
@@ -55,7 +49,7 @@ if [[ "$AGENT" == "custom" ]]; then
 fi
 
 installed=0
-if [[ "$AGENT" == "auto" || "$AGENT" == "codex" ]] && [[ -d "$HOME/.codex" || -d "$HOME/.codex" ]]; then
+if [[ "$AGENT" == "auto" || "$AGENT" == "codex" ]] && [[ -d "$HOME/.codex" ]]; then
   install_to "$HOME/.codex/skills/$SKILL_NAME"; installed=1
 fi
 if [[ "$AGENT" == "auto" || "$AGENT" == "claude" ]] && [[ -d "$HOME/.claude" ]]; then
@@ -64,13 +58,12 @@ fi
 if [[ "$AGENT" == "auto" || "$AGENT" == "cursor" ]] && [[ -d "$HOME/.cursor" ]]; then
   install_to "$HOME/.cursor/skills/$SKILL_NAME"; installed=1
 fi
-if [[ "$AGENT" == "codex" || "$AGENT" == "claude" || "$AGENT" == "cursor" ]] && [[ $installed -eq 0 ]]; then
+if [[ $installed -eq 0 ]]; then
   case "$AGENT" in
-    codex) install_to "$HOME/.codex/skills/$SKILL_NAME" ;;
-    claude) install_to "$HOME/.claude/skills/$SKILL_NAME" ;;
-    cursor) install_to "$HOME/.cursor/skills/$SKILL_NAME" ;;
+    codex)  install_to "$HOME/.codex/skills/$SKILL_NAME"; installed=1 ;;
+    claude) install_to "$HOME/.claude/skills/$SKILL_NAME"; installed=1 ;;
+    cursor) install_to "$HOME/.cursor/skills/$SKILL_NAME"; installed=1 ;;
   esac
-  installed=1
 fi
 
 if [[ $installed -eq 0 ]]; then
