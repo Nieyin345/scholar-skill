@@ -4,6 +4,7 @@ description: This skill provides reference guidance for citation verification in
 tags: [Research, Academic, Citation, Reference]
 version: 0.1.0
 ---
+<!-- scholar 参考文档（非独立 skill）：本文件原名 SKILL.md，为避免被 agent 扫描为独立 skill 而改名为 GUIDE.md；scholar 内通过目录路径引用它。 -->
 
 # Citation Verification Reference Guide
 

@@ -4,6 +4,7 @@ description: Draft, restructure, or plan Nature-style manuscript sections from a
 version: 0.2.0
 author: Community contribution based on curated Nature/Nature Communications writing patterns and open research-writing notes
 ---
+<!-- scholar 参考文档（非独立 skill）：本文件原名 SKILL.md，为避免被 agent 扫描为独立 skill 而改名为 GUIDE.md；scholar 内通过目录路径引用它。 -->
 
 # Nature-Style Scientific Writing
 
