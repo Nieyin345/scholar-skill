@@ -7,7 +7,7 @@
 param(
   [string]$Agent = "auto",        # auto / codex / claude / cursor / custom
   [string]$TargetDir = "",
-  [string]$RepoUrl = "https://github.com/Nieyin345/scholar.git",
+  [string]$RepoUrl = "https://github.com/Nieyin345/scholar-skill.git",
   [switch]$Force
 )
 $ErrorActionPreference = "Stop"

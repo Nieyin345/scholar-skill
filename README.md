@@ -40,12 +40,12 @@ Skill 本体就是本仓库根目录内容。安装 = 把仓库内容放到对�
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/Nieyin345/scholar/main/install.sh | bash -s -- --agent auto
+curl -fsSL https://raw.githubusercontent.com/Nieyin345/scholar-skill/main/install.sh | bash -s -- --agent auto
 ```
 
 ```powershell
 # Windows（PowerShell 5.1+ / 7+）
-irm https://raw.githubusercontent.com/Nieyin345/scholar/main/install.ps1 | iex -Args "--agent", "auto"
+irm https://raw.githubusercontent.com/Nieyin345/scholar-skill/main/install.ps1 | iex -Args "--agent", "auto"
 ```
 
 参数说明（两脚本一致）：
@@ -69,13 +69,13 @@ irm https://raw.githubusercontent.com/Nieyin345/scholar/main/install.ps1 | iex -
 
 ```bash
 # Codex
-git clone --depth 1 https://github.com/Nieyin345/scholar.git ~/.codex/skills/scholar
+git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git ~/.codex/skills/scholar
 
 # Claude Code
-git clone --depth 1 https://github.com/Nieyin345/scholar.git ~/.claude/skills/scholar
+git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git ~/.claude/skills/scholar
 
 # Cursor（项目级）
-git clone --depth 1 https://github.com/Nieyin345/scholar.git .cursor/skills/scholar
+git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skills/scholar
 ```
 
 > 任何只认「目录 + SKILL.md」的 Agent 都可用同一方式：把本仓库 clone/复制到一个 Agent 能读到的 skills 目录即可。更新 = 在对应目录 `git pull`（或重新 clone）。

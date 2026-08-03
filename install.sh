@@ -7,7 +7,7 @@
 #   bash install.sh --repo https://github.com/<user>/<repo>.git --agent auto
 set -euo pipefail
 
-REPO_URL="https://github.com/Nieyin345/scholar.git"
+REPO_URL="https://github.com/Nieyin345/scholar-skill.git"
 AGENT="auto"
 TARGET_DIR=""
 SKILL_NAME="scholar"
