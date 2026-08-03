@@ -20,8 +20,52 @@
 
 ## 自包含（独立 Skill）
 
-scholar 是**自包含**的：全部流程、规范、脚本、参考文档与第三方工具都内嵌在仓库内（`workflows/`、`standards/`、`references/`、`scripts/`、`tools/`、`plugins/`），不依赖任何其他 Skill 或插件。运行环境只要求系统级工具（Python 3.9+、rg、可选 LaTeX / MinerU CLI / defuddle / draw.io desktop / PowerPoint）。
+scholar 是**自包含**的：全部流程、规范、脚本、参考文档与第三方工具都内嵌在仓库内（`workflows/`、`standards/`、`references/`、`scripts/`、`tools/`、`plugins/`），不依赖任何其他 Skill 或插件。运行环境只要求系统级工具（Python 3.9+、rg、可选 LaTeX / MinerU CLI / defuddle / draw.io desktop / PowerPoint）。它同时也是**多个 Skill 融合的产物**——融合来源与链接见下文「融合产物」章节。
 
+## 融合产物（多 Skill 融合）
+
+scholar 不是从零编写的单一 Skill，而是**多个公开 Skill / 插件 / 开源项目融合的产物**：把经过筛选的检索、下载、转换、写作、架构、画图等方法论、脚本与定义吸收进一个自包含 Skill。所有被吸收的内容都已**完整内嵌到本仓库**（`scripts/`、`references/`、`standards/`、`tools/`、`plugins/`），运行时不依赖任何外部 Skill 或插件。
+
+### 完整内嵌（脚本 / 插件 / 参考全集）
+
+| 融合来源 | 链接 | 吸收位置 | 吸收内容 |
+|----------|------|----------|----------|
+| paper-fetch | https://github.com/obra/paper-fetch | `scripts/fetch.py` + `cloak_pdf.py` | 文献 PDF 下载（多源解析 + %PDF 校验） |
+| AnySearch | https://github.com/anysearch-ai/anysearch-skill | `scripts/anysearch/` | 实时搜索 CLI（Apache-2.0） |
+| scientific-illustrator | https://github.com/icebird1998/scientific-illustrator | `plugins/scientific-illustrator/` | 科研插图 MCP 后端（3 个 server + 6 个子 skill，MIT） |
+| MinerU | https://github.com/opendatalab/MinerU | `scripts/mineru/` + `convert_pdf_to_md.py` | PDF→MD 精提取 CLI |
+| research-ideation | 本地 skill 生态吸收（无公开链接） | `references/research-ideation/` | 研究方向引导全套：5W1H / gap 分析 / 研究问题 / 方法选择 / 检索策略 / 研究计划 |
+| citation-verification / nature-writing / paper-self-review | 本地 skill 生态吸收（无公开链接） | `references/` 对应目录 | 引用核验、Nature 风格写作、论文自查与判定 |
+
+### 方法论与规范吸收（进入 standards / workflows，标注来源改写）
+
+| 融合来源 | 链接 | 吸收内容 |
+|----------|------|----------|
+| superpowers | https://github.com/obra/superpowers | TDD、系统化调试、验证门禁、代码评审纪律 |
+| gstack | https://github.com/garrytan/gstack | 计划评审 / 设计评审 / 文档生成工作流 |
+| wondelai/skills | https://github.com/wondelai/skills | design-code-architecture、clean-architecture 依赖规则 |
+| co-researcher | https://github.com/poemswe/co-researcher | 系统综述（PRISMA）、研究方法论、批判审查 |
+| agent-research-skills | https://github.com/lingzhi227/agent-research-skills | 选题 / 新颖性 / 深研 / 算法设计 / LaTeX 投稿格式 |
+| ai-agents-public | https://github.com/vasilyu1983/ai-agents-public | 架构选型决策树、ADR 记录模板 |
+| claude-software-skills | https://github.com/miles990/claude-software-skills | 架构模式对比与反模式、测试策略 |
+| software_development_skills | https://github.com/yinhunfeixue/software_development_skills | 中文软件生命周期（需求→设计→编码→测试→评审） |
+| qodex-ai-agent-skills | https://github.com/qodex-ai/ai-agent-skills | 代码风格硬规则、Clean Architecture 落地 |
+| context-engineering-kit | https://github.com/neolabhq/context-engineering-kit | DDD 与 Clean Architecture 规则化 |
+| melodic-claude-code-plugins | https://github.com/melodic-software/claude-code-plugins | 架构文档改进流程与模板 |
+| everything-claude-code | https://github.com/affaan-m/everything-claude-code | coding-standards 编码规范基线 |
+| awesome-copilot | https://github.com/github/awesome-copilot | 编码规范文档结构模板 |
+| ai-development-team | https://github.com/olehsvyrydov/ai-development-team | 多角色职责边界、负面判据 |
+| alirezarezvani-claude-skills | https://github.com/alirezarezvani/claude-skills | boardroom 多角色隔离评审架构 |
+| latex-document-skill | https://github.com/ndpvt-web/latex-document-skill | LaTeX 引擎检测 / 多遍编译（改写为 `scripts/latex/`） |
+| langchain-skills | https://github.com/langchain-ai/langchain-skills | 检索→生成两阶段思想（scholar 落地为无向量版） |
+| wshobson/agents | https://github.com/wshobson/agents | RAG 生成纪律「有据才答」（反模式对照） |
+
+### 本地生态吸收（已内嵌，无公开链接）
+
+- obsidian-literature-workflow / obsidian-source-ingestion / obsidian-project-kb-core / obsidian-markdown / zotero-obsidian-bridge：Obsidian 知识库结构、wiki 链接互链、Zotero 证据纪律（学习笔记 / 知识库检索工具）。
+- ml-paper-writing：主张-证据纪律（Claim Ledger Gate、Claim Audit）（论文写作规范）。
+
+> 「本地 skill 生态吸收」指最初来自本机已安装的 skill，方法论已改写进 scholar 并标注来源；完整吸收映射见 `00_markdown/项目介绍.md`、`ref-external/README.md`（参考源）与各 `standards/` / `references/` 文件内「参考来源」。
 ## 目录结构
 
 ```text

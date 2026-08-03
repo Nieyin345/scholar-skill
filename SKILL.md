@@ -76,7 +76,7 @@ description: |
 ## 自包含声明（独立 Skill）
 
 - **scholar 为自包含 Skill**：所有方法论、规范、脚本、参考均已内嵌于本目录（`workflows/`、`standards/`、`references/`、`scripts/`、`tools/`），**不依赖任何其他 Skill 目录**；
-- 文中「参考来源 / 本地 skill」字样仅表示**设计溯源**（方法源自何处），scholar 运行时不读取那些外部 skill 的文件；
+- 文中「参考来源 / 本地 skill」字样仅表示**设计溯源**（方法源自何处），scholar 运行时不读取那些外部 skill 的文件；scholar 是多个 Skill 融合的产物，完整融合来源与链接见 `README.md`「融合产物」章节；
 - 外部依赖仅为系统级工具与可选桌面应用：Python、rg、LaTeX、MinerU CLI、defuddle npm 包，以及绘图后端 draw.io desktop / PowerPoint / WPS（由内嵌 MCP server 调用，缺失时按 `tools/科研插图.md` 降级路径处理）；
 - 已内嵌：research-ideation 全套（`references/research-ideation/`）、citation-verification / nature-writing / paper-self-review 参考（`references/`）、anysearch CLI（`scripts/anysearch/`）、paper-fetch 下载脚本（`scripts/fetch.py`、`cloak_pdf.py`）、scientific-illustrator v1.5.2 插件全套（`plugins/scientific-illustrator/`：3 个 MCP server + 6 个子 skill + officejs，MIT）。
 

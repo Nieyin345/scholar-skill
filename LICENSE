@@ -28,6 +28,9 @@ Third-party components included in this repository:
   (https://github.com/obra/paper-fetch); governed by its upstream license.
 - scripts/anysearch/: from AnySearch (Apache License 2.0); LICENSE and NOTICE
   are bundled in that directory.
+- plugins/scientific-illustrator/: from icebird1998/scientific-illustrator
+  (https://github.com/icebird1998/scientific-illustrator), MIT License (author:
+  科研up主:进击的土博); fully embedded (3 MCP servers, 6 sub-skills, officejs).
 - references/ and standards/: partially rewritten from public skill ecosystem
   resources; each file records its reference sources. Used under "rewrite +
   attribute" practice; not verbatim copies.
