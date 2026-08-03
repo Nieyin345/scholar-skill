@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Scholar Skill 一键安装脚本（Linux / macOS / Git Bash）
+# Scholar Skill 一键安装/更新脚本（Linux / macOS / Git Bash）
 # 用法:
 #   bash install.sh --agent auto
 #   bash install.sh --agent codex
 #   bash install.sh --agent custom --target /path/to/skills
 #   bash install.sh --repo https://github.com/<user>/<repo>.git --agent auto
+#
+# 本地配置保留：.env（密钥）与 state.json（首次配置状态）是本机文件，更新/重装都会自动保留。
 set -euo pipefail
 
 REPO_URL="https://github.com/Nieyin345/scholar-skill.git"
@@ -34,12 +36,40 @@ command -v git >/dev/null 2>&1 || { echo "ERROR: git is required."; exit 1; }
 install_to() {
   local dest="$1"
   mkdir -p "$(dirname "$dest")"
+
+  # 已安装且是 git 仓库：保留本地配置（.env / state.json），直接更新
+  if [[ -d "$dest/.git" ]]; then
+    (
+      cd "$dest"
+      git remote set-url origin "$REPO_URL"
+      git fetch --depth 1 origin main
+      git reset --hard origin/main
+    )
+    if [[ ! -f "$dest/SKILL.md" ]]; then
+      echo "ERROR: no SKILL.md found in $dest"; exit 1
+    fi
+    echo ">> Updated scholar -> $dest (本地 .env / state.json 已保留)"
+    return
+  fi
+
+  # 全新安装：先备份本地配置（若有），重装后恢复
+  local bak=""
+  if [[ -f "$dest/.env" || -f "$dest/state.json" ]]; then
+    bak="$(mktemp -d)"
+    [[ -f "$dest/.env" ]] && cp "$dest/.env" "$bak/.env"
+    [[ -f "$dest/state.json" ]] && cp "$dest/state.json" "$bak/state.json"
+  fi
   rm -rf "$dest"
   git clone --depth 1 "$REPO_URL" "$dest"
+  if [[ -n "$bak" ]]; then
+    [[ -f "$bak/.env" ]] && cp "$bak/.env" "$dest/.env"
+    [[ -f "$bak/state.json" ]] && cp "$bak/state.json" "$dest/state.json"
+    rm -rf "$bak"
+  fi
   if [[ ! -f "$dest/SKILL.md" ]]; then
     echo "ERROR: no SKILL.md found in $dest"; exit 1
   fi
-  echo ">> Installed scholar -> $dest (git repo; git pull 即可更新)"
+  echo ">> Installed scholar -> $dest (本地 .env / state.json 已保留)"
 }
 
 if [[ "$AGENT" == "custom" ]]; then

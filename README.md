@@ -134,7 +134,9 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git ~/.claude/ski
 git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skills/scholar
 ```
 
-> 任何只认「目录 + SKILL.md」的 Agent 都可用同一方式：把本仓库 clone/复制到一个 Agent 能读到的 skills 目录即可。更新 = 在对应目录 `git pull`（或重新 clone）。
+> 任何只认「目录 + SKILL.md」的 Agent 都可用同一方式：把本仓库 clone/复制到一个 Agent 能读到的 skills 目录即可。更新 = 在对应目录 `git pull`（或重新运行安装脚本）。
+>
+> **密钥与配置保留**：`.env`（密钥）与 `state.json`（首次配置状态）是本机文件，已被 `.gitignore` 排除、不上传 GitHub；`git pull` 更新或重跑安装脚本（install.ps1 / install.sh）都会**自动保留**，不会覆盖你设置过的 key 和路径。
 
 ## 首次使用配置
 首次触发由 skill 内建的**状态文件**自动判定：`<skill_dir>/state.json` 不存在或 `setup_complete != true` 即为首次触发，会引导完成一次性配置（密钥 + 本地路径）后写入状态；之后每次触发直接复用，不再询问。可用 `python scripts/setup_state.py status` 查看，`reset` 可重走首次配置。
@@ -187,4 +189,4 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
 git pull
 ```
 
-或重新运行一键安装脚本（覆盖安装）。
+或重新运行一键安装脚本（已安装目录会走 git 更新，`.env` / `state.json` 自动保留）。

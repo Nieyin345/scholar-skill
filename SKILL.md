@@ -38,6 +38,7 @@ description: |
 ### 状态文件
 
 - 位置：`<skill_dir>/state.json`（本机级，已被 `.gitignore` 排除，**不上传 GitHub**）；
+- **更新保留**：`.env`（密钥）与 `state.json`（配置）都是本机文件；`git pull` 更新或重跑安装脚本都会自动保留，**不会覆盖已保存的密钥与路径**，更新后无需重新配置；
 - 模板：`state.json.example`；查看状态：`python scripts/setup_state.py status`。
 
 ## 流程总览
