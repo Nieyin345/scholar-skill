@@ -18,6 +18,10 @@
 | 工具·书籍库管理 | PDF 教材库骨架 + 增量维护：游离 PDF 归类、转 MD、登记索引 |
 | 工具·知识库检索 | **无向量库 RAG**：回答问题时检索本地论文/笔记/书籍/Zotero 缓存并溯源（不做 embedding，`rg` 关键词召回 + 整页读取） |
 
+## 自包含（独立 Skill）
+
+scholar 是**自包含**的：全部流程、规范、脚本与参考文档都内嵌在仓库内（`workflows/`、`standards/`、`references/`、`scripts/`、`tools/`），不依赖任何其他 Skill。运行环境只要求系统级工具（Python 3.9+、rg、可选 LaTeX / MinerU CLI / defuddle / scientific-illustrator 插件）。
+
 ## 目录结构
 
 ```text

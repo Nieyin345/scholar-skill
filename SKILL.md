@@ -73,6 +73,13 @@ description: |
 | `scripts/latex/` | LaTeX 引擎检测 + 编译脚本（流程四） |
 | `scripts/books_ingest.py` | 书籍库维护：ensure-skeleton / list-orphan-pdfs / ingest（归类+转换+登记索引） |
 
+## 自包含声明（独立 Skill）
+
+- **scholar 为自包含 Skill**：所有方法论、规范、脚本、参考均已内嵌于本目录（`workflows/`、`standards/`、`references/`、`scripts/`、`tools/`），**不依赖任何其他 Skill 目录**；
+- 文中「参考来源 / 本地 skill」字样仅表示**设计溯源**（方法源自何处），scholar 运行时不读取那些外部 skill 的文件；
+- 唯一**可选**外部依赖：`scientific-illustrator` 插件（科研插图工具的 MCP 后端，未安装时按 `tools/科研插图.md` 降级路径处理）与系统级工具（Python、rg、LaTeX、MinerU CLI、defuddle npm 包）；
+- 已内嵌：research-ideation 全套（`references/research-ideation/`）、citation-verification / nature-writing / paper-self-review 参考（`references/`）、anysearch CLI（`scripts/anysearch/`）、paper-fetch 下载脚本（`scripts/fetch.py`、`cloak_pdf.py`）。
+
 ## 共享参考文档
 
 | 文档 | 内容 |
@@ -90,6 +97,7 @@ description: |
 | `references/latex-template/` | 默认论文格式模板（main.tex + references.bib，仅格式） |
 | `references/project-navigation-template.md` | 项目导航文档模板（`00_项目导航.md`：文件结构 / 文档索引 / 文献库索引 / 当前状态 / 更新记录） |
 | `references/vault-navigation-template.md` | 笔记库导航模板（`00-导航.md`：vault 项目知识库结构 / 命名规则 / 论文笔记注册表 / 当前状态 / 维护铁律） |
+| `references/research-ideation/` | 研究方向确认参考（scholar 内嵌：5W1H / gap 分析 / 研究问题 / 研究契约 / 方法选择 / 检索策略 / 研究计划 / Zotero 集成） |
 | `standards/` | 写作规范库（`通用写作规范.md` 跨任务底线 + 每个写作任务一份规范，随反馈持续更新；索引见 `standards/_INDEX.md`） |
 
 ## 工具索引（不在流程内，按需触发）

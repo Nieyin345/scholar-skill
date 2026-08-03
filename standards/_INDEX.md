@@ -43,10 +43,10 @@
 
 ### 研究方向确认类参考（流程0）
 
-- research-ideation（本地 skill，references 全套）：5W1H 六维度、五类 gap 分析、Research Question Card、Evidence Record、Claim/Proposal 门禁、SMART 问题——已吸收进 v2.0 规范与流程0 工作流。
+- research-ideation（scholar 内嵌 `references/research-ideation/`）：5W1H 六维度、五类 gap 分析、Research Question Card、Evidence Record、Claim/Proposal 门禁、SMART 问题——已吸收进 v2.0 规范与流程0 工作流。
 - agent-research-skills（ref-external）：idea-generation（候选生成/迭代细化/三维评分）、novelty-assessment（≥3 轮检索评估/苛刻审稿）、research-planning（研究计划骨架/输出 schema）、deep-research（阶段门禁/来源质量分级）。
 - co-researcher（ref-external）：research-manager（计划先行/状态持久化/决策日志）、hypothesis-testing（H₀/H₁/变量矩阵/证伪标准）。
-- ARS（本地 academic-research-suite）：research_architect_agent（问题驱动方法/方法决策树）。
+- ARS（方法已吸收，见 `references/synthesis-guide.md`）：research_architect_agent（问题驱动方法/方法决策树）。
 
 ### 软件工程/架构类参考（代码架构设计规范）
 
