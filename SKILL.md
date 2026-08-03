@@ -22,13 +22,17 @@ description: |
 - **首次触发**：`state.json` 不存在，或 `setup_complete != true`；
 - **非首次触发**：`setup_complete == true`（读取并复用已保存的密钥与路径，不再询问）。
 
-### 首次触发流程（一次性配置，完成后写入状态）
+### 首次触发流程（强制：先配置密钥，再回答问题）
 
-1. 告知用户「这是首次使用 scholar，需要一次性配置」；
-2. **密钥**（只问缺失的）：先运行 `python scripts/manage_keys.py list` 查看 `.env` 已有密钥；缺失时按需询问并保存——`ANYSEARCH_API_KEY`（可选，匿名可用）、`MINERU_TOKEN`（可选，MinerU `flash` 模式免认证）、`UNPAYWALL_EMAIL`（可选）。用户没给 key 也允许继续（对应功能首次触发时再问一次并保存）；
-3. **本地路径**（用户确认后记录）：Obsidian vault、书籍库根目录、Zotero 数据目录——用 `python scripts/setup_state.py set-path <key> <value>` 写入（`key` ∈ `obsidian_vault` / `books_root` / `zotero_root`）；用户不确认则留空，后续按需再问；
-4. **标记完成**：`python scripts/setup_state.py complete`（记录首次触发时间）；
-5. 继续正常流程路由。
+**铁律：首次触发时，无论用户问什么，都先完成密钥配置；全部配置完成前，不回答用户问题、不进入任何流程。**
+
+1. 告知用户：「首次使用 scholar，需要先完成密钥配置（约 1 分钟），配置完成后我立刻回答你的问题」；
+2. **展示密钥教程**：读取 `references/key-setup-guide.md`，把三个密钥的用途、获取方式（AnySearch 注册 / MinerU Token / Unpaywall 邮箱）完整列给用户；
+3. **逐个收集密钥**（先 `python scripts/manage_keys.py list` 看已有哪些）：
+   - `ANYSEARCH_API_KEY`（可选，匿名可用）、`MINERU_TOKEN`（可选，flash 免认证）、`UNPAYWALL_EMAIL`（可选）——依次询问，用户提供则 `python scripts/manage_keys.py set <KEY> <value>` 保存；用户明确说「跳过」才记为跳过；**每个密钥都必须过一遍，未处理完不得进入下一步**；
+4. **本地路径**（用户确认后记录）：Obsidian vault、书籍库根目录、Zotero 数据目录——用 `python scripts/setup_state.py set-path <key> <value>` 写入（`key` ∈ `obsidian_vault` / `books_root` / `zotero_root`）；用户不确认则留空；
+5. **标记完成**：`python scripts/setup_state.py complete`（记录首次触发时间）；
+6. **配置完成后，回到用户最初的问题**，按正常路由（判断流程）开始回答。
 
 ### 非首次触发
 
@@ -78,7 +82,7 @@ description: |
 
 ## 密钥获取与保存规则
 
-- 密钥**只在首次触发时批量询问缺失项**（判定见「首次触发状态」），保存到本地 `.env` 后，之后触发自动读取，不再反复询问用户。
+- 密钥**只在首次触发时批量询问缺失项**（判定见「首次触发状态」，教程见 `references/key-setup-guide.md`），保存到本地 `.env` 后，之后触发自动读取，不再反复询问用户。
 - 保存位置：`<skill_dir>/.env`（已被 `.gitignore` 排除，**不会上传到 GitHub**）。
 - 管理命令：`python scripts/manage_keys.py set <KEY> <value>` 保存；`get` / `list` / `delete` 读取、查看、删除。
 - anysearch：触发时若无 `ANYSEARCH_API_KEY` 则询问用户，提供后保存；之后每次自动使用。用户没有 key 则匿名访问。
@@ -112,6 +116,7 @@ description: |
 | 文档 | 内容 |
 |------|------|
 | `references/zotero-rules.md` | Zotero 目录/缓存规则、Evidence Record 模板、Claim Promotion Gate |
+| `references/key-setup-guide.md` | 首次触发密钥教程（AnySearch / MinerU / Unpaywall 的用途与获取方式） |
 | `references/citation-verification/` | 引用核验规则与 API 用法 |
 | `references/paper-self-review/` | 综述/论文自查清单与最终判定 |
 | `references/nature-writing/` | Nature 风格写作规范（精选章节） |

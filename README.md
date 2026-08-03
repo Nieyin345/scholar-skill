@@ -139,7 +139,7 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
 > **密钥与配置保留**：`.env`（密钥）与 `state.json`（首次配置状态）是本机文件，已被 `.gitignore` 排除、不上传 GitHub；`git pull` 更新或重跑安装脚本（install.ps1 / install.sh）都会**自动保留**，不会覆盖你设置过的 key 和路径。
 
 ## 首次使用配置
-首次触发由 skill 内建的**状态文件**自动判定：`<skill_dir>/state.json` 不存在或 `setup_complete != true` 即为首次触发，会引导完成一次性配置（密钥 + 本地路径）后写入状态；之后每次触发直接复用，不再询问。可用 `python scripts/setup_state.py status` 查看，`reset` 可重走首次配置。
+首次触发由 skill 内建的**状态文件**自动判定：`<skill_dir>/state.json` 不存在或 `setup_complete != true` 即为首次触发。**首次触发时先完成密钥配置（教程见 `references/key-setup-guide.md`），配置完成前不回答用户问题**；配置完成（密钥 + 本地路径）写入状态后，再回答用户最初的问题；之后每次触发直接复用，不再询问。可用 `python scripts/setup_state.py status` 查看，`reset` 可重走首次配置。
 
 1. **密钥**（可选项，缺失时触发相关功能会询问一次并保存到 `<skill_dir>/.env`）：
    - `ANYSEARCH_API_KEY` — 实时网络搜索（可选，匿名可用）
