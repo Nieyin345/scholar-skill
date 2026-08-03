@@ -1,0 +1,26 @@
+# 密钥文件（禁止上传到 GitHub）
+.env
+*.env
+!.env.example
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+
+# 临时/测试产物
+.paper-fetch-idem/
+pdfs/
+
+# LaTeX 编译产物（仅保留 .tex/.bib 源文件与模板示例 PDF）
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc
+
+# LaTeX 模板示例 PDF（编译产物，不提交）
+references/latex-template/*.pdf

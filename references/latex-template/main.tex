@@ -1,0 +1,89 @@
+% =====================================================================
+% Scholar 默认论文格式模板（FORMAT ONLY / 仅格式，不含写作风格）
+% - 写稿流程：先写中文稿 -> 翻译英文 -> 套用本模板生成 .tex
+% - 编译：python scripts/latex/compile_latex.py main.tex
+% - 引擎：本模板用 ctex，自动走 xelatex（detect_engine 自动识别）
+% - 说明：本模板只约束【格式】（版面/字体/章节/引用），
+%         写作风格与内容规范见 standards/论文写作规范.md
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+% ------------------------- 中文支持（xelatex） -------------------------
+\usepackage{ctex}          % 中文稿编译预览；最终英文稿可保留也可移除
+\usepackage{fontspec}
+
+% ------------------------- 页面与字体 -------------------------
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\onehalfspacing
+
+% ------------------------- 数学 -------------------------
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+
+% ------------------------- 图表 -------------------------
+\usepackage{graphicx}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+
+% ------------------------- 列表 -------------------------
+\usepackage{enumitem}
+\setlist{nosep}
+
+% ------------------------- 颜色与超链接 -------------------------
+\usepackage{xcolor}
+\definecolor{linkblue}{RGB}{0,51,153}
+\usepackage[colorlinks=true,linkcolor=linkblue,citecolor=linkblue,urlcolor=linkblue]{hyperref}
+
+% ------------------------- 算法 -------------------------
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% ------------------------- 参考文献 -------------------------
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+% =====================================================================
+\begin{document}
+
+\title{Paper Title}
+\author{Author One$^{1}$, Author Two$^{2}$ \\ \small $^{1}$Affiliation 1, $^{2}$Affiliation 2}
+\date{\today}
+\maketitle
+
+% ------------------------- 摘要 -------------------------
+\begin{abstract}
+% 中文稿阶段可写中文摘要；英文稿阶段替换为英文摘要。
+Abstract text: background, problem, method, key results, conclusion.
+\end{abstract}
+
+\noindent\textbf{Keywords:} keyword1; keyword2; keyword3
+
+% ------------------------- 正文 -------------------------
+\section{Introduction}
+% 背景、动机、问题、贡献列表、论文组织。
+
+\section{Related Work}
+% 按主题组织，避免逐篇枚举；每主题末尾给批判性小结。
+
+\section{Method}
+% 问题形式化、算法设计、数学与理论；伪代码用 algorithm 环境。
+
+\section{Experiments}
+% 数据集/设置、基线、实现细节；对照解决方案文档的评价指标。
+
+\section{Results}
+% 主结果、消融、鲁棒性；图表引用 \ref{}，指标表格用 booktabs。
+
+\section{Conclusion}
+% 结论、局限、未来工作。
+
+% ------------------------- 参考文献 -------------------------
+\bibliography{references}
+
+\end{document}
