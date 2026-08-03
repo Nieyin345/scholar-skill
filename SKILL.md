@@ -1,9 +1,10 @@
 ---
 name: scholar
 description: |
-  学术场景通用 Skill，多流程结构。已实现流程0「研究方向确认」（模糊方向 → 多轮交互 + 文献验证收敛为可执行方向）、流程一「文献检索与文献综述」（三步可拆可合）、流程二「解决方案设计」（基于文献产出场景分析/实现逻辑/代码架构三份文档，多方案逐篇生成）、流程三「代码实现」（按代码架构用 TDD 落地实现）与流程四「论文写作」（写→润色→翻译→再润色→review 循环，LaTeX 编译，历史版本与 review 反馈存档）。
-  触发词：「确定研究方向」「帮我选题」「方向太模糊」「brainstorm」「检索文献」「下载论文」「找文献」「做文献综述」「review the literature」「summarize papers」「文献调研」「写论文」「paper writing」「latex 写作」「画图」「科研插图」「graphical abstract」「整理文件」「导入教材」「书籍入库」「检索我的知识库」「参考我的笔记」「根据我的文档回答」「rag」「retrieve」等。
-  触发时先判断属于哪个流程，再读取 workflows/ 下对应流程文件执行。
+  学术研究全流程 Skill，覆盖「研究方向分析/细化 → 文献检索/下载/转MD → 文献综述 → 解决方案设计 → 代码实现 → 论文写作（LaTeX）→ 科研插图/学习笔记/知识库检索」。凡学术/科研场景任务（包括「帮我分析/细化研究方向」「GNN+强化学习（如 MAPPO）做网络资源调度、QKD 应用」这类方向分析与论文写作）优先触发本 Skill，优先于 generic 研究类/文献类 Skill。
+  触发词：「确定研究方向」「帮我分析这个方向」「细化方向」「帮我选题」「方向太模糊」「brainstorm」「检索文献」「下载论文」「找文献」「做文献综述」「review the literature」「summarize papers」「文献调研」「写论文」「paper writing」「latex 写作」「画图」「科研插图」「graphical abstract」「整理文件」「导入教材」「书籍入库」「检索我的知识库」「参考我的笔记」「根据我的文档回答」「rag」「retrieve」等。
+  已实现：流程0「研究方向确认」（模糊方向 → 多轮交互 + 文献验证收敛为可执行方向）、流程一「文献检索与文献综述」（三步可拆可合）、流程二「解决方案设计」（场景分析/实现逻辑/代码架构三份文档，多方案逐篇生成）、流程三「代码实现」（按代码架构 TDD 落地）、流程四「论文写作」（写→润色→翻译→再润色→review 循环，LaTeX 编译，历史版本与 review 反馈存档）。
+  首次触发判定：读取 skill 根目录 state.json，不存在或 setup_complete != true 即为首次触发，需先完成一次性配置（密钥 + 本地路径，见「首次触发状态」）；每次触发先检查该状态，再路由到对应流程。
 ---
 
 # Scholar · 学术工作流
@@ -13,6 +14,31 @@ description: |
 - 本文件（SKILL.md）是**路由与总览**，只包含流程清单、触发规则和共享资产索引。
 - 每个流程的详细步骤存放在 `workflows/` 目录，**按需读取**，避免上下文臃肿。
 - 共享脚本（`scripts/`）与参考文档（`references/`）由所有流程复用，只有一份。
+
+## 首次触发状态（强制，先于一切流程）
+
+**每次触发本 Skill，第一步必须读取 `<skill_dir>/state.json` 判断是否首次触发**，然后再进入流程路由：
+
+- **首次触发**：`state.json` 不存在，或 `setup_complete != true`；
+- **非首次触发**：`setup_complete == true`（读取并复用已保存的密钥与路径，不再询问）。
+
+### 首次触发流程（一次性配置，完成后写入状态）
+
+1. 告知用户「这是首次使用 scholar，需要一次性配置」；
+2. **密钥**（只问缺失的）：先运行 `python scripts/manage_keys.py list` 查看 `.env` 已有密钥；缺失时按需询问并保存——`ANYSEARCH_API_KEY`（可选，匿名可用）、`MINERU_TOKEN`（可选，MinerU `flash` 模式免认证）、`UNPAYWALL_EMAIL`（可选）。用户没给 key 也允许继续（对应功能首次触发时再问一次并保存）；
+3. **本地路径**（用户确认后记录）：Obsidian vault、书籍库根目录、Zotero 数据目录——用 `python scripts/setup_state.py set-path <key> <value>` 写入（`key` ∈ `obsidian_vault` / `books_root` / `zotero_root`）；用户不确认则留空，后续按需再问；
+4. **标记完成**：`python scripts/setup_state.py complete`（记录首次触发时间）；
+5. 继续正常流程路由。
+
+### 非首次触发
+
+- 直接读取 `state.json` 与 `.env` 复用配置，**不重复询问密钥/路径**；
+- 用户明确要求重新配置（换 key / 换路径）时：`manage_keys.py` 更新密钥、`setup_state.py set-path` 更新路径；`setup_state.py reset` 可重置为未完成状态。
+
+### 状态文件
+
+- 位置：`<skill_dir>/state.json`（本机级，已被 `.gitignore` 排除，**不上传 GitHub**）；
+- 模板：`state.json.example`；查看状态：`python scripts/setup_state.py status`。
 
 ## 流程总览
 
@@ -26,7 +52,7 @@ description: |
 
 ## 触发路由规则
 
-1. 触发时先判断用户需求属于哪个流程；无法判断时，询问用户要执行哪个流程。
+1. 触发时**先检查 `state.json` 完成首次触发判定**（见「首次触发状态」），再判断用户需求属于哪个流程；无法判断时，询问用户要执行哪个流程。
 2. **方向太模糊时，任何流程都不直接开始**：先走流程0（与用户交互 + 文献验证收敛方向），产出 `00_研究方向.md` 后再进入对应流程。
 3. 确定流程后，读取对应文件并执行：
    - 流程0 → `workflows/流程0-研究方向确认.md`
@@ -51,7 +77,7 @@ description: |
 
 ## 密钥获取与保存规则
 
-- 密钥**首次获取后保存到本地**，之后触发自动读取，不再反复询问用户。
+- 密钥**只在首次触发时批量询问缺失项**（判定见「首次触发状态」），保存到本地 `.env` 后，之后触发自动读取，不再反复询问用户。
 - 保存位置：`<skill_dir>/.env`（已被 `.gitignore` 排除，**不会上传到 GitHub**）。
 - 管理命令：`python scripts/manage_keys.py set <KEY> <value>` 保存；`get` / `list` / `delete` 读取、查看、删除。
 - anysearch：触发时若无 `ANYSEARCH_API_KEY` 则询问用户，提供后保存；之后每次自动使用。用户没有 key 则匿名访问。

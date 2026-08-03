@@ -24,3 +24,7 @@ pdfs/
 
 # LaTeX 模板示例 PDF（编译产物，不提交）
 references/latex-template/*.pdf
+
+# 首次触发状态（本机级，不上传 GitHub）
+state.json
+state.local.json

@@ -130,6 +130,7 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
 > 任何只认「目录 + SKILL.md」的 Agent 都可用同一方式：把本仓库 clone/复制到一个 Agent 能读到的 skills 目录即可。更新 = 在对应目录 `git pull`（或重新 clone）。
 
 ## 首次使用配置
+首次触发由 skill 内建的**状态文件**自动判定：`<skill_dir>/state.json` 不存在或 `setup_complete != true` 即为首次触发，会引导完成一次性配置（密钥 + 本地路径）后写入状态；之后每次触发直接复用，不再询问。可用 `python scripts/setup_state.py status` 查看，`reset` 可重走首次配置。
 
 1. **密钥**（可选项，缺失时触发相关功能会询问一次并保存到 `<skill_dir>/.env`）：
    - `ANYSEARCH_API_KEY` — 实时网络搜索（可选，匿名可用）

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "setup_complete": false,
+  "first_trigger_at": null,
+  "last_trigger_at": null,
+  "paths": {
+    "obsidian_vault": null,
+    "books_root": null,
+    "zotero_root": null
+  }
+}
