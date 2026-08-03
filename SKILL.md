@@ -77,8 +77,8 @@ description: |
 
 - **scholar 为自包含 Skill**：所有方法论、规范、脚本、参考均已内嵌于本目录（`workflows/`、`standards/`、`references/`、`scripts/`、`tools/`），**不依赖任何其他 Skill 目录**；
 - 文中「参考来源 / 本地 skill」字样仅表示**设计溯源**（方法源自何处），scholar 运行时不读取那些外部 skill 的文件；
-- 唯一**可选**外部依赖：`scientific-illustrator` 插件（科研插图工具的 MCP 后端，未安装时按 `tools/科研插图.md` 降级路径处理）与系统级工具（Python、rg、LaTeX、MinerU CLI、defuddle npm 包）；
-- 已内嵌：research-ideation 全套（`references/research-ideation/`）、citation-verification / nature-writing / paper-self-review 参考（`references/`）、anysearch CLI（`scripts/anysearch/`）、paper-fetch 下载脚本（`scripts/fetch.py`、`cloak_pdf.py`）。
+- 外部依赖仅为系统级工具与可选桌面应用：Python、rg、LaTeX、MinerU CLI、defuddle npm 包，以及绘图后端 draw.io desktop / PowerPoint / WPS（由内嵌 MCP server 调用，缺失时按 `tools/科研插图.md` 降级路径处理）；
+- 已内嵌：research-ideation 全套（`references/research-ideation/`）、citation-verification / nature-writing / paper-self-review 参考（`references/`）、anysearch CLI（`scripts/anysearch/`）、paper-fetch 下载脚本（`scripts/fetch.py`、`cloak_pdf.py`）、scientific-illustrator v1.5.2 插件全套（`plugins/scientific-illustrator/`：3 个 MCP server + 6 个子 skill + officejs，MIT）。
 
 ## 共享参考文档
 
@@ -104,7 +104,7 @@ description: |
 
 | 工具 | 用途 | 触发要点 | 文档 | 依赖 |
 |------|------|----------|------|------|
-| 科研插图 | 神经网络结构图 / 训练与推理架构图 / 流程图 / 图形摘要 / 机理图（可编辑矢量，draw.io 或 PowerPoint/WPS） | 画图 / 插图 / 结构图 / 架构图 / 流程图 / neural network diagram / graphical abstract | `tools/科研插图.md` | scientific-illustrator 插件（可选；未装时按文档降级路径处理） |
+| 科研插图 | 神经网络结构图 / 训练与推理架构图 / 流程图 / 图形摘要 / 机理图（可编辑矢量，draw.io 或 PowerPoint/WPS） | 画图 / 插图 / 结构图 / 架构图 / 流程图 / neural network diagram / graphical abstract | `tools/科研插图.md` | scholar 内嵌 `plugins/scientific-illustrator/`（MCP 注册见工具文档） |
 | 学习笔记 | 把论文提炼为个人学习笔记，写入 Obsidian vault（wiki 链接互链/跳转，搭建个人知识体系） | 学习笔记 / 知识笔记 / 论文笔记 / 搭建知识体系 / 放进 Obsidian / knowledge note | `tools/学习笔记.md` | Obsidian vault（默认 `OB_database`，可选） |
 | 书籍库管理 | 书籍库（PDF 教材）骨架创建 + 增量维护：游离 PDF 归类、MD 转换、`00_索引.md` 登记 | 导入教材 / 书籍入库 / 整理教材 / 检查新 pdf / 分类教材 / books / textbook | `tools/书籍库管理.md` | 可选（`scripts/books_ingest.py`） |
 | 知识库检索 | 无向量 RAG 问答：回答问题时检索本地论文/笔记/书籍/Zotero 缓存并溯源（`rg` 关键词召回 + LLM 相关性 + 整页读取，不做 embedding） | 检索我的知识库 / 参考我的笔记 / 根据我的文档回答 / 查一下我之前记的 / rag / retrieve / grounded answer | `tools/知识库检索.md` | 无（`rg` 已具备，无需脚本与密钥） |

@@ -20,7 +20,7 @@
 
 ## 自包含（独立 Skill）
 
-scholar 是**自包含**的：全部流程、规范、脚本与参考文档都内嵌在仓库内（`workflows/`、`standards/`、`references/`、`scripts/`、`tools/`），不依赖任何其他 Skill。运行环境只要求系统级工具（Python 3.9+、rg、可选 LaTeX / MinerU CLI / defuddle / scientific-illustrator 插件）。
+scholar 是**自包含**的：全部流程、规范、脚本、参考文档与第三方工具都内嵌在仓库内（`workflows/`、`standards/`、`references/`、`scripts/`、`tools/`、`plugins/`），不依赖任何其他 Skill 或插件。运行环境只要求系统级工具（Python 3.9+、rg、可选 LaTeX / MinerU CLI / defuddle / draw.io desktop / PowerPoint）。
 
 ## 目录结构
 
@@ -32,6 +32,7 @@ scholar/                     # 仓库根即 Skill 本体（SKILL.md 位于根目
 ├── tools/                   # 独立工具（科研插图 / 学习笔记 / 书籍库管理 / 知识库检索）
 ├── scripts/                 # 共享脚本：下载(fetch) / 转换(MinerU) / 搜索 / 密钥管理 / LaTeX / 书籍库
 ├── references/              # 共享参考：检索协议、写作模板、Zotero 规则、LaTeX 模板等
+├── plugins/                 # 内嵌第三方：scientific-illustrator（科研插图 MCP 后端，MIT）
 ├── .env.example             # 密钥模板（复制为 .env 后填入）
 └── .gitignore
 ```
@@ -99,7 +100,8 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
    - `rg` / ripgrep（知识库检索）
    - LaTeX 引擎（流程四编译；`scripts/latex/detect_engine.py` 会自动检测）
    - MinerU Open API CLI（PDF→MD；`scripts/mineru/install.ps1` 或官方安装命令）
-   - scientific-illustrator 插件（科研插图工具，可选）
+   - draw.io desktop（科研插图工具后端，可选；自动探测或设 `DRAWIO_PATH`）
+   - PowerPoint / WPS（科研插图工具可选后端；MCP server 已内嵌于 `plugins/scientific-illustrator/`，注册方式见 `tools/科研插图.md`）
 
 ## 工作目录约定
 
@@ -122,6 +124,7 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
 - Skill 本体（SKILL.md / workflows / standards / tools / references 自研部分）：MIT（见 LICENSE）。
 - `scripts/fetch.py`、`scripts/cloak_pdf.py`：源自 [obra/paper-fetch](https://github.com/obra/paper-fetch)，遵循其上游许可证。
 - `scripts/anysearch/`：来自 AnySearch，Apache-2.0（目录内附 LICENSE/NOTICE）。
+- `plugins/scientific-illustrator/`：来自 [icebird1998/scientific-illustrator](https://github.com/icebird1998/scientific-illustrator)（作者：科研up主:进击的土博），MIT License，已完整内嵌（3 个 MCP server + 6 个子 skill + officejs）。
 - `references/` 中部分规范为改写自公开 skill 生态（详见各文件「参考来源」），按「改写 + 标注来源」处理。
 - MinerU 为 [opendatalab/MinerU](https://github.com/opendatalab/MinerU) 的 Open API CLI。
 
