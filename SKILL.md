@@ -120,7 +120,7 @@ description: |
 | `references/synthesis-guide.md` | 检索三关筛选、布尔式、滚雪球、综合方法 |
 | `references/literature-review-template.md` | 文献综述结构化模板 |
 | `references/solution-templates/` | 解决方案三文档模板（场景分析/实现逻辑/代码架构） |
-| `references/latex-template/` | 默认论文格式模板（main.tex + references.bib，仅格式） |
+| `references/latex-template/` | 默认论文格式模板（IEEE CS Magazine（CsMag）官方模板：main.tex + IEEEcsmag.cls，仅格式） |
 | `references/project-navigation-template.md` | 项目导航文档模板（`00_项目导航.md`：文件结构 / 文档索引 / 文献库索引 / 当前状态 / 更新记录） |
 | `references/vault-navigation-template.md` | 笔记库导航模板（`00-导航.md`：vault 项目知识库结构 / 命名规则 / 论文笔记注册表 / 当前状态 / 维护铁律） |
 | `references/research-ideation/` | 研究方向确认参考（scholar 内嵌：5W1H / gap 分析 / 研究问题 / 研究契约 / 方法选择 / 检索策略 / 研究计划 / Zotero 集成） |
