@@ -14,7 +14,7 @@
 | 流程三 代码实现 | 按 03 架构用 TDD 落地实现：系统化调试、验证门禁、回归验证、对齐实验阶段 |
 | 流程四 论文写作 | 写（中文）→ 润色 → 翻译 → 再润色 → LaTeX 编译 → 多角色 review 循环（写/润色/翻译/review 分角色）；review 发现问题非写作类则中断返回前流程；历史版本与 review 反馈存档 |
 | 工具·科研插图 | 神经网络结构图 / 训练架构图 / 流程图 / 图形摘要（可编辑矢量，draw.io 或 PowerPoint/WPS） |
-| 工具·学习笔记 | 论文 → Obsidian 学习笔记（wiki 链接互链，搭建个人知识体系） |
+| 工具·学习笔记 | 论文 → 学习笔记（写入当前项目 `笔记/` 库，wiki 链接互链，可直接作为 Obsidian vault 打开） |
 | 工具·书籍库管理 | PDF 教材库骨架 + 增量维护：游离 PDF 归类、转 MD、登记索引 |
 | 工具·知识库检索 | **无向量库 RAG**：回答问题时检索本地论文/笔记/书籍/Zotero 缓存并溯源（不做 embedding，`rg` 关键词召回 + 整页读取） |
 
@@ -139,16 +139,13 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
 > **密钥与配置保留**：`.env`（密钥）与 `state.json`（首次配置状态）是本机文件，已被 `.gitignore` 排除、不上传 GitHub；`git pull` 更新或重跑安装脚本（install.ps1 / install.sh）都会**自动保留**，不会覆盖你设置过的 key 和路径。
 
 ## 首次使用配置
-首次触发由 skill 内建的**状态文件**自动判定：`<skill_dir>/state.json` 不存在或 `setup_complete != true` 即为首次触发。**首次触发时先完成密钥配置（教程见 `references/key-setup-guide.md`），配置完成前不回答用户问题**；配置完成（密钥 + 本地路径）写入状态后，再回答用户最初的问题；之后每次触发直接复用，不再询问。可用 `python scripts/setup_state.py status` 查看，`reset` 可重走首次配置。
+首次触发由 skill 内建的**状态文件**自动判定：`<skill_dir>/state.json` 不存在或 `setup_complete != true` 即为首次触发。**首次触发时先完成密钥配置（教程见 `references/key-setup-guide.md`），配置完成前不回答用户问题**；配置完成（密钥 + 自动创建三库骨架）写入状态后，再回答用户最初的问题；之后每次触发直接复用，不再询问。可用 `python scripts/setup_state.py status` 查看，`reset` 可重走首次配置。
 
 1. **密钥**（可选项，缺失时触发相关功能会询问一次并保存到 `<skill_dir>/.env`）：
    - `ANYSEARCH_API_KEY` — 实时网络搜索（可选，匿名可用）
    - `MINERU_TOKEN` — PDF→MD 精提取（MinerU `extract` 模式需要；`flash` 模式免认证）
    - `UNPAYWALL_EMAIL` — 文献下载 Unpaywall 源（可选）
-2. **本地路径**（首次触发对应功能时确认，确认后记住复用）：
-   - Obsidian vault（学习笔记）
-   - 书籍库根目录（默认 `~/OB_database/Books`）
-   - Zotero 数据目录（知识库检索的 Zotero 缓存，Windows 默认 `%USERPROFILE%\Zotero`，macOS `~/Zotero`）
+2. **三库骨架（自动创建，不询问路径）**：首次触发在当前工作目录（cwd）自动创建三个并行的子文件夹——`论文/`（论文库）、`笔记/`（学习笔记库，可直接作为 Obsidian vault 打开）、`书籍/`（教材库）——及各库导航文件；研究方向文件夹建在论文库下（`论文/<主题>/`）。已有独立 Obsidian vault / 书籍库目录想复用旧库时，可用 `python scripts/setup_state.py set-path <key> <value>` 指定（可选）。
 3. **依赖**：
    - Python 3.9+（脚本）
    - `rg` / ripgrep（知识库检索）
@@ -159,18 +156,23 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
 
 ## 工作目录约定
 
-每个研究方向（主题）在工作区内建立独立文件夹，skill 会维护一份 `00_项目导航.md` 作为目录索引 + 文档管理入口（只在文件变动时更新）：
+**首次触发在当前工作目录（cwd）自动创建三个并行的子文件夹（不询问路径）**：`论文/`（论文库）、`笔记/`（学习笔记库，可直接作为 Obsidian vault 打开）、`书籍/`（教材库）。每个研究方向（主题）在**论文库下**建立独立文件夹（`论文/<主题>/`），skill 维护 `论文/<主题>/00_项目导航.md`（主题导航）与 `论文/00_索引.md`（研究方向注册表）作为目录索引 + 文档管理入口（只在文件变动时更新）：
 
 ```text
-<主题>/
-├── 00_项目导航.md           # 目录总表 + 文献/文档位置（导航文档）
-├── 00_研究方向.md
-├── <论文短名-年>/           # 每篇论文一个文件夹：pdf + md
-├── 文献综述.md
-├── 解决方案/                # 01 场景分析 / 02 实现逻辑 / 03 代码架构
-├── implementation/          # 流程三代码实现 + 实验图 figures/
-├── paper/                   # 流程四论文 + versions/（历史版本与 review 反馈）
-└── figures/                 # 科研插图工具产出（示意图）
+<当前项目>/                  # cwd
+├── 论文/
+│   ├── 00_索引.md           # 研究方向注册表（库级导航）
+│   └── <主题>/
+│       ├── 00_项目导航.md    # 目录总表 + 文献/文档位置（导航文档）
+│       ├── 00_研究方向.md
+│       ├── <论文短名-年>/    # 每篇论文一个文件夹：pdf + md
+│       ├── 文献综述.md
+│       ├── 解决方案/         # 01 场景分析 / 02 实现逻辑 / 03 代码架构
+│       ├── implementation/   # 流程三代码实现 + 实验图 figures/
+│       ├── paper/            # 流程四论文 + versions/（历史版本与 review 反馈）
+│       └── figures/          # 科研插图工具产出（示意图）
+├── 笔记/                    # 学习笔记库（Sources/Papers、Knowledge、00-导航.md）
+└── 书籍/                    # 教材库（<方向>/<教材名>/：pdf + md + 图床，00_索引.md）
 ```
 
 ## 第三方来源与许可

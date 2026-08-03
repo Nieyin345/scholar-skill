@@ -3,12 +3,14 @@
 
 用法：
   python setup_state.py status                        # 查看当前状态（是否首次触发）
-  python setup_state.py set-path <key> <value>        # 记录本地路径（obsidian_vault / books_root / zotero_root）
+  python setup_state.py set-path <key> <value>        # 记录本地路径覆盖（可选：obsidian_vault / books_root / zotero_root）
   python setup_state.py complete                      # 标记首次配置完成
   python setup_state.py reset                         # 重置为未完成（下次触发重新走首次配置）
 
 说明：state.json 位于 <skill_dir>/state.json，已被 .gitignore 排除，不会上传 GitHub。
 首次触发判定：state.json 不存在，或 setup_complete != true，即视为首次触发。
+三库（论文/笔记/书籍）默认建在当前工作目录，由 scripts/init_workspace.py 自动创建；
+本命令的 paths 仅用于覆盖默认位置（如复用既有 Obsidian vault / 书籍库目录），首次触发不再询问路径。
 """
 from __future__ import annotations
 

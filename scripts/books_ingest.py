@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """书籍库摄取与维护（书籍库管理工具配套脚本）。
 
-管理 scholar 书籍库（Books/）的三级结构：
-  Books/<方向>/<教材名>/<教材名>.pdf + <教材名>.md + (图床/)
+管理 scholar 书籍库（书籍/）的三级结构：
+  书籍/<方向>/<教材名>/<教材名>.pdf + <教材名>.md + (图床/)
 
 命令：
   ensure-skeleton       创建书籍库骨架 + 00_索引.md（触发时动作，不扫描）
@@ -23,14 +23,14 @@ import sys
 from datetime import date
 from pathlib import Path
 
-DEFAULT_ROOT = Path.home() / "OB_database" / "Books"
+DEFAULT_ROOT = Path.cwd() / "书籍"
 INDEX_NAME = "00_索引.md"
 SKILL_DIR = Path(__file__).resolve().parent.parent
 CONVERT = SKILL_DIR / "scripts" / "convert_pdf_to_md.py"
 
 INDEX_HEADER = """# 书籍库索引
 
-> 本索引由「书籍库管理」工具维护（只增不删）。结构：Books/<方向>/<教材名>/（pdf + md + 图床）。
+> 本索引由「书籍库管理」工具维护（只增不删）。结构：书籍/<方向>/<教材名>/（pdf + md + 图床）。
 
 | 教材名 | 方向 | PDF | MD | 转换日期 | 状态 |
 |--------|------|-----|----|----------|------|
