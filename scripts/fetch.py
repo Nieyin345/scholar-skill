@@ -2,7 +2,7 @@
 """Fetch legal open-access PDFs by DOI.
 
 Resolution order: Unpaywall -> Semantic Scholar openAccessPdf ->
-arXiv -> PMC OA -> bioRxiv/medRxiv.
+arXiv -> PMC OA -> bioRxiv/medRxiv -> OpenAlex OA.
 
 Exit codes:
   0  success (all DOIs resolved and downloaded / dry-run previewed)
@@ -12,7 +12,7 @@ Exit codes:
   4  transport error — network / download / IO failure (retryable class)
 
 If UNPAYWALL_EMAIL is not set, the Unpaywall source is skipped
-and the remaining 4 sources are still tried.
+and the remaining sources are still tried.
 
 Machine contract:
   stdout — one JSON object per invocation (or NDJSON with --stream)
@@ -545,7 +545,7 @@ def _is_allowed_host(url: str) -> bool:
     Only SSRF defense applies — private IPs, non-http(s) schemes, non-80/443
     ports, and cloud metadata hostnames are rejected. Everything else is
     allowed: the skill trusts URLs returned by the OA APIs it already called
-    (Unpaywall, Semantic Scholar, bioRxiv, PMC), and the %PDF magic-byte +
+    (Unpaywall, Semantic Scholar, bioRxiv, PMC, OpenAlex), and the %PDF magic-byte +
     50 MB size checks in `_download` catch tampered responses.
     """
     ok, _reason = _is_safe_url(url)
@@ -720,6 +720,36 @@ def try_semantic_scholar(doi: str, *, timeout: int, errors: list | None = None) 
     }
     pdf = (d.get("openAccessPdf") or {}).get("url")
     return pdf, meta, d.get("externalIds") or {}
+
+def try_openalex(doi: str, *, timeout: int, errors: list | None = None) -> tuple[str | None, dict]:
+    """OpenAlex OA record for a DOI (no token needed).
+
+    OpenAlex indexes green OA copies (repository / preprint / author copy)
+    that Unpaywall or S2 sometimes miss, and it has no auth or rate key.
+    Returns (pdf_url, meta); pdf_url is None when the work has no
+    open-access location.
+    """
+    url = f"https://api.openalex.org/works/doi:{urllib.parse.quote(doi)}"
+    try:
+        d = _get_json(url, timeout=timeout)
+    except Exception as e:
+        _progress("source_miss", source="openalex", reason=str(e))
+        if errors is not None and _is_transport_exc(e):
+            errors.append({"source": "openalex", "detail": str(e)})
+        return None, {}
+    oa = d.get("open_access") or {}
+    best = (d.get("best_oa_location") or {}).get("pdf_url") or oa.get("oa_url")
+    if not best:
+        return None, {}
+    pl = d.get("primary_location") or {}
+    source = pl.get("source") or {}
+    meta = {
+        "title": d.get("title"),
+        "year": d.get("publication_year"),
+        "author": ((d.get("authorships") or [{}])[0].get("author") or {}).get("display_name"),
+        "journal": source.get("display_name"),
+    }
+    return best, meta
 
 
 def try_arxiv(arxiv_id: str) -> str:
@@ -1607,6 +1637,21 @@ def fetch(
         else:
             _progress("source_miss", doi=doi, source="biorxiv")
 
+    # --- OpenAlex OA (no token; catches green-OA copies the others miss) ---
+    _progress("source_try", doi=doi, source="openalex")
+    sources_tried.append("openalex")
+    oa_url, oa_meta = try_openalex(doi, timeout=timeout, errors=resolver_errors)
+    added = _merge_meta(oa_meta)
+    if added:
+        _progress("source_enrich", doi=doi, source="openalex", fields=added)
+        fname = _filename(meta or {"title": doi})
+        dest = out_dir / fname
+    if oa_url:
+        _progress("source_hit", doi=doi, source="openalex", pdf_url=oa_url)
+        _add("openalex", oa_url)
+    else:
+        _progress("source_miss", doi=doi, source="openalex")
+
     # --- Publisher-direct fallback (institutional mode only) ---
     # Runs only when the operator has opted into institutional mode. The
     # caller's IP / cookies / EZproxy are what actually authorize the fetch.
@@ -2190,7 +2235,7 @@ def main():
 
     ap = argparse.ArgumentParser(
         prog="paper-fetch",
-        description="Fetch legal open-access PDFs by DOI via Unpaywall, Semantic Scholar, arXiv, PMC, and bioRxiv/medRxiv.",
+        description="Fetch legal open-access PDFs by DOI via Unpaywall, Semantic Scholar, arXiv, PMC, bioRxiv/medRxiv, and OpenAlex.",
         epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

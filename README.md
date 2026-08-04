@@ -166,7 +166,7 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
 │       ├── 00_项目导航.md    # 目录总表 + 文献/文档位置（导航文档）
 │       ├── 00_研究方向.md
 │       ├── <论文短名-年>/    # 每篇论文一个文件夹：pdf + md
-│       ├── 文献综述.md
+│       ├── 03_文献综述.md
 │       ├── 解决方案/         # 01 场景分析 / 02 实现逻辑 / 03 代码架构
 │       ├── implementation/   # 流程三代码实现 + 实验图 figures/
 │       ├── paper/            # 流程四论文 + versions/（历史版本与 review 反馈）
