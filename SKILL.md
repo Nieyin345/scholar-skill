@@ -135,6 +135,7 @@ python scripts/institutional_login.py <登录URL> [额外域名...]
 ```
 
 - 弹出可见浏览器，用户完成机构登录（含 MFA），回终端回车，会话 cookie 自动落盘；
+- **资源 URL 分流（决定走哪条机构路径，以地址栏实际为准）**：含 `ezproxy`/`libproxy` → EZproxy 校外访问；含 `webvpn`/`vpn` → WebVPN；含 `cas`/`authserver` → 学校统一身份（看 `service=` 回调决定资源站）；含 `carsi`/`idp`/`shibboleth` → 联邦认证（CARSI/Shibboleth，「Access through your institution」选学校）；登录页不是最终失败，认证后应回到资源站；
 - 入口 URL 选择：
   - 学校有 EZproxy：`https://ezproxy.<学校>.edu/login`（图书馆「校外访问」链接）；
   - 无 EZproxy 的学校（如 Politecnico di Milano）：用出版商「Access through your institution」入口——打开目标 IEEE 文章页 → Sign In → Institutional Sign In → 搜索选择学校（如 Politecnico di Milano）→ 学校登录页完成认证；额外域名填 `ieeexplore.ieee.org`；
@@ -161,6 +162,15 @@ $env:CLOAKBROWSER_PYTHON = 'C:\Python313\python.exe'
    python scripts/institutional_download.py --dois <失败DOI清单.txt> --out <输出目录> [--headful]
    ```
    用 CloakBrowser 复用同一 cookie jar 发起请求，能通过 IEEE 的 AWS WAF（urllib 直连会被 418 拦截，即使 cookie 有效）；成功后立即触发 MD 转换；WAF 严格时加 `--headful`；
+   > **三级（推荐优先）：CDP 复用已登录浏览器**——用户已在 Edge/Chrome 完成机构登录（含 MFA）时，直接用该登录态下载，**不再重复 MFA**：
+   > ```powershell
+   > pwsh scripts/edge_cdp.ps1          # 启动/检测带调试端口的 Edge（专用 profile）
+   > # 在该 Edge 窗口完成机构登录后：
+   > $env:PAPER_FETCH_INSTITUTIONAL = '1'
+   > $env:PAPER_FETCH_CDP_PORT = '9222'
+   > python scripts/fetch.py <DOI>      # 机构模式自动以 CDP 兜底下载付费墙 PDF
+   > ```
+   > 也可单独下载：`node scripts/cdp_download.mjs --url <pdf-url> --out <file.pdf> --port 9222`（零依赖，Node 22+）；端口被占用时 `edge_cdp.ps1` 自动复用现有调试浏览器（如日常 Edge 带调试端口）。
 3. **cookie 过期判定**：连续 `418` / 登录页 HTML / `403` → 重跑登录向导，不影响已保存的 key。
 
 ### 下载失败分级（报告时按此判断，避免无意义重试）

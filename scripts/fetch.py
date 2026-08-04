@@ -124,6 +124,13 @@ COOKIE_JAR_PATH = Path(
     or (_SKILL_DIR / ".scholar_institutional" / "cookies.txt")
 )
 
+# --- CDP browser-session fallback (institutional mode) ---
+# PAPER_FETCH_CDP_PORT=<port>  Reuse an already-authenticated Edge/Chrome
+# session launched with --remote-debugging-port (see scripts/edge_cdp.ps1).
+# Default 9222; set to empty (PAPER_FETCH_CDP_PORT=) to disable.
+CDP_PORT = os.environ.get("PAPER_FETCH_CDP_PORT", "9222").strip()
+
+
 # ---------------------------------------------------------------------------
 # Sci-Hub fallback
 # ---------------------------------------------------------------------------
@@ -278,6 +285,38 @@ def _cloak_fetch_pdf(url: str, *, timeout: int) -> bytes | None:
         _progress("download_cloak_error", url=url, reason="helper_failed", stderr=tail)
         return None
     return r.stdout
+
+
+def _cdp_fetch_pdf(url: str, dest: Path, *, timeout: int) -> bool:
+    """Download through the operator's already-authenticated browser
+    session (CDP; e.g. Edge launched with --remote-debugging-port).
+    Returns True iff a valid PDF was written to dest."""
+    if not CDP_PORT:
+        return False
+    node = shutil.which("node")
+    helper = Path(__file__).with_name("cdp_download.mjs")
+    if not node or not helper.exists():
+        return False
+    try:
+        r = subprocess.run(
+            [node, str(helper), "--url", url, "--out", str(dest),
+             "--port", CDP_PORT, "--timeout", str(max(timeout, 60))],
+            capture_output=True, text=True, timeout=timeout + 120,
+        )
+    except Exception as e:
+        _progress("download_cdp_error", url=url, error=str(e))
+        return False
+    if r.returncode != 0:
+        tail = (r.stdout or r.stderr or "")[-300:]
+        _progress("download_cdp_error", url=url, detail=tail)
+        return False
+    try:
+        payload = json.loads((r.stdout or "").splitlines()[-1])
+    except Exception:
+        return False
+    if not payload.get("ok"):
+        return False
+    return dest.exists() and dest.stat().st_size > 0
 
 
 def _is_safe_url(url: str) -> tuple[bool, str]:
@@ -654,6 +693,17 @@ def _download(url: str, dest: Path, *, timeout: int) -> str | None:
         _progress("download_cloak_ok", url=url, bytes=len(data))
         return True
 
+    def _try_cdp() -> bool:
+        """Retry this URL through the user's already-authenticated
+        browser session (CDP). No-op unless institutional mode."""
+        if not _is_institutional():
+            return False
+        if _cdp_fetch_pdf(url, dest, timeout=timeout):
+            _progress("download_cdp_ok", url=url, bytes=dest.stat().st_size)
+            return True
+        return False
+
+
     _rate_limit_gate()
     req = urllib.request.Request(
         url,
@@ -678,7 +728,7 @@ def _download(url: str, dest: Path, *, timeout: int) -> str | None:
         http_status = getattr(e, "code", None)
         # Cloudflare answers non-browser clients with 403/429. If the operator
         # opted into the CloakBrowser fallback, retry through it before failing.
-        if isinstance(http_status, int) and http_status in (403, 429) and _try_cloak():
+        if isinstance(http_status, int) and http_status in (403, 429) and (_try_cloak() or _try_cdp()):
             return None
         fields: dict = {"reason": "network_error", "error": str(e)}
         if isinstance(http_status, int):
@@ -690,7 +740,7 @@ def _download(url: str, dest: Path, *, timeout: int) -> str | None:
     # first crack before recording a hard failure. Then validate + write through
     # the shared path so the size/%PDF/IO checks stay identical to the cloak
     # fallback (no divergent second copy to drift).
-    if not data[:5].startswith(b"%PDF") and _try_cloak():
+    if not data[:5].startswith(b"%PDF") and (_try_cloak() or _try_cdp()):
         return None
     return _finalize(data)
 
