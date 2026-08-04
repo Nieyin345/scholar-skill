@@ -5,7 +5,7 @@
 #   .\install.ps1 -Agent custom -TargetDir D:\path\to\skills
 #   .\install.ps1 -RepoUrl https://github.com/<user>/<repo>.git -Agent auto
 #
-# 本地配置保留：.env（密钥）与 state.json（首次配置状态）是本机文件，更新/重装都会自动保留。
+# 本地配置保留：.env（密钥）与 state.json（初始化记录/路径覆盖）是本机文件，更新/重装都会自动保留。
 param(
   [string]$Agent = "auto",        # auto / codex / claude / cursor / custom
   [string]$TargetDir = "",

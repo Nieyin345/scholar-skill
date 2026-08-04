@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""首次触发状态管理：记录 scholar 是否已完成首次配置（<skill_dir>/state.json）。
+"""scholar 状态管理：记录初始化时间与本地路径覆盖（<skill_dir>/state.json）。
 
 用法：
-  python setup_state.py status                        # 查看当前状态（是否首次触发）
+  python setup_state.py status                        # 查看当前状态（初始化时间 / 路径覆盖）
   python setup_state.py set-path <key> <value>        # 记录本地路径覆盖（可选：obsidian_vault / books_root / zotero_root）
-  python setup_state.py complete                      # 标记首次配置完成
-  python setup_state.py reset                         # 重置为未完成（下次触发重新走首次配置）
+  python setup_state.py complete                      # 标记三库骨架初始化完成（信息性，不 gate 任何流程）
+  python setup_state.py reset                         # 重置初始化记录
 
 说明：state.json 位于 <skill_dir>/state.json，已被 .gitignore 排除，不会上传 GitHub。
-首次触发判定：state.json 不存在，或 setup_complete != true，即视为首次触发。
-三库（论文/笔记/书籍）默认建在当前工作目录，由 scripts/init_workspace.py 自动创建；
-本命令的 paths 仅用于覆盖默认位置（如复用既有 Obsidian vault / 书籍库目录），首次触发不再询问路径。
+scholar 不设「先配置再使用」的首次触发门禁：state.json 不作为任何流程的前置条件，
+仅记录首次/最近触发时间与路径覆盖（paths）。三库（论文/笔记/书籍）骨架缺失时自动创建；
+密钥按需获取（见 SKILL.md「密钥获取与保存规则」），不在本状态中记录。
 """
 from __future__ import annotations
 
@@ -94,7 +94,7 @@ def main() -> None:
     sp = sub.add_parser("set-path", help="记录本地路径")
     sp.add_argument("key", choices=PATH_KEYS)
     sp.add_argument("value")
-    sub.add_parser("complete", help="标记首次配置完成")
+    sub.add_parser("complete", help="标记三库骨架初始化完成（信息性）")
     sub.add_parser("reset", help="重置为首次触发状态")
     args = parser.parse_args()
     handlers = {"status": cmd_status, "set-path": cmd_set_path, "complete": cmd_complete, "reset": cmd_reset}

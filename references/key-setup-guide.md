@@ -1,6 +1,6 @@
-# scholar 密钥获取教程（首次触发必读）
+# scholar 密钥获取教程（按需查阅）
 
-首次触发 scholar 时，会**先完成密钥配置，再回答你的问题**。本文件列出全部密钥的用途与获取方式；每个密钥都过一遍（提供，或对可选项明确说「跳过」）后即完成，之后不再要求重填。
+scholar **不设「先配置再使用」的首次触发门禁**：密钥只在**用到的那一刻**按需获取——功能需要且缺失时，agent 会查阅本文件，把用途与获取方式列给你；你提供后保存到本地 `.env`，之后自动复用；key 失效（401 / 403 / invalid / expired）时同样按本文件重新获取。
 
 ## 1. ANYSEARCH_API_KEY — 实时搜索（可选，匿名可用）
 
@@ -22,11 +22,11 @@
 - **获取**：**无需注册**，Unpaywall API 免费，官方只要求提供一个邮箱作为 API 调用标识（推荐机构邮箱）：https://unpaywall.org 。
 - **不填**：下载少一个免费源（仍走 arXiv / 开放获取等源）。
 
-## 配置流程（agent 按此执行）
+## 按需获取流程（agent 按此执行）
 
-1. 运行 `python scripts/manage_keys.py list` 查看 `.env` 已有的密钥；
-2. 依次询问三个密钥（缺失的）：用户提供 → `python scripts/manage_keys.py set <KEY> <value>` 保存；用户明确说「跳过」→ 记为跳过，不保存；**每个密钥都要过一遍，未处理完不得进入下一步**；
-3. 全部处理完后 `python scripts/setup_state.py complete` 标记首次配置完成；
-4. **配置完成后，回到用户最初的问题**，按正常流程回答。
+1. 执行到需要某个 key 的功能时，先 `python scripts/manage_keys.py get <KEY>` 检查 `.env`；已有 → 直接复用，不询问；
+2. 缺失 → 把本文件对应小节（用途 + 获取方式）展示给用户，询问密钥；
+3. 用户提供 → `python scripts/manage_keys.py set <KEY> <value>` 保存后继续执行；用户明确「跳过」→ 降级运行（AnySearch 匿名 / MinerU flash / Unpaywall 少一个源），不阻塞、不反复追问；
+4. 脚本报 key 失效（401 / 403 / invalid / expired）→ 告知用户该 key 已失效，重新执行第 2~3 步，覆盖保存后重试。
 
 > 密钥保存在 `<skill_dir>/.env`（本机文件，不上传 GitHub）；之后更新 skill（git pull / 重装）会自动保留，不会要求重填。

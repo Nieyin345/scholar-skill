@@ -4,7 +4,7 @@ description: |
   学术研究全流程 Skill，覆盖「研究方向分析/细化 → 文献检索/下载/转MD → 文献综述 → 解决方案设计 → 代码实现 → 论文写作（LaTeX）→ 科研插图/学习笔记/知识库检索」。凡学术/科研场景任务（包括「帮我分析/细化研究方向」「GNN+强化学习（如 MAPPO）做网络资源调度、QKD 应用」这类方向分析与论文写作）优先触发本 Skill，优先于 generic 研究类/文献类 Skill。
   触发词：「确定研究方向」「帮我分析这个方向」「细化方向」「帮我选题」「方向太模糊」「brainstorm」「检索文献」「下载论文」「找文献」「做文献综述」「review the literature」「summarize papers」「文献调研」「写论文」「paper writing」「latex 写作」「画图」「科研插图」「graphical abstract」「整理文件」「导入教材」「书籍入库」「检索我的知识库」「参考我的笔记」「根据我的文档回答」「rag」「retrieve」等。
   已实现：流程0「研究方向确认」（模糊方向 → 多轮交互 + 文献验证收敛为可执行方向）、流程一「文献检索与文献综述」（三步可拆可合）、流程二「解决方案设计」（场景分析/实现逻辑/代码架构三份文档，多方案逐篇生成）、流程三「代码实现」（按代码架构 TDD 落地）、流程四「论文写作」（写→润色→翻译→再润色→review 循环，LaTeX 编译，历史版本与 review 反馈存档）。
-  首次触发判定：读取 skill 根目录 state.json，不存在或 setup_complete != true 即为首次触发，需先完成一次性配置（密钥 + 自动创建三库骨架，见「首次触发状态」）；每次触发先检查该状态，再路由到对应流程。
+  密钥策略：不设「先配置再使用」的首次触发门禁——触发即用；三库骨架（论文/笔记/书籍）首次触发在当前项目自动创建，之后缺失自动补建；任何 key 缺失或失效时，在用到它的那一刻询问用户并保存到本地 .env，之后自动复用（见「密钥获取与保存规则」）。
 ---
 
 # Scholar · 学术工作流
@@ -15,39 +15,24 @@ description: |
 - 每个流程的详细步骤存放在 `workflows/` 目录，**按需读取**，避免上下文臃肿。
 - 共享脚本（`scripts/`）与参考文档（`references/`）由所有流程复用，只有一份。
 
-## 首次触发状态（强制，先于一切流程）
+## 触发即用（无首次配置门禁）
 
-**每次触发本 Skill，第一步必须读取 `<skill_dir>/state.json` 判断是否首次触发**，然后再进入流程路由：
+**scholar 不设「先配置再使用」的首次触发流程**：每次触发直接按用户需求路由，不因「未配置密钥」而阻塞或提问。
 
-- **首次触发**：`state.json` 不存在，或 `setup_complete != true`；
-- **非首次触发**：`setup_complete == true`（读取并复用已保存的密钥与路径，不再询问）。
-
-### 首次触发流程（强制：先配置密钥，再回答问题）
-
-**铁律：首次触发时，无论用户问什么，都先完成密钥配置；全部配置完成前，不回答用户问题、不进入任何流程。**
-
-1. 告知用户：「首次使用 scholar，需要先完成密钥配置（约 1 分钟），配置完成后我立刻回答你的问题」；
-2. **展示密钥教程**：读取 `references/key-setup-guide.md`，把三个密钥的用途、获取方式（AnySearch 注册 / MinerU Token / Unpaywall 邮箱）完整列给用户；
-3. **逐个收集密钥**（先 `python scripts/manage_keys.py list` 看已有哪些）：
-   - `ANYSEARCH_API_KEY`（可选，匿名可用）、`MINERU_TOKEN`（可选，flash 免认证）、`UNPAYWALL_EMAIL`（可选）——依次询问，用户提供则 `python scripts/manage_keys.py set <KEY> <value>` 保存；用户明确说「跳过」才记为跳过；**每个密钥都必须过一遍，未处理完不得进入下一步**；
-4. **初始化三库骨架（自动，不询问路径）**：在当前工作目录（cwd，即当前项目）直接创建三个并行的子文件夹——`论文/`（论文库）、`笔记/`（学习笔记库，可直接作为 Obsidian vault 打开）、`书籍/`（教材库）——及各库导航/索引文件：`python scripts/init_workspace.py init`；三库默认跟随当前项目；用户已有独立 Obsidian vault / 书籍库目录想复用旧库时，可在之后用 `python scripts/setup_state.py set-path <key> <value>` 显式覆盖（可选，非首次触发内容）；
-5. **标记完成**：`python scripts/setup_state.py complete`（记录首次触发时间）；
-6. **配置完成后，回到用户最初的问题**，按正常路由（判断流程）开始回答。
-
-### 非首次触发
-
-- 直接读取 `state.json` 与 `.env` 复用配置，**不重复询问密钥/路径**；
-- 用户明确要求重新配置（换 key / 换路径）时：`manage_keys.py` 更新密钥、`setup_state.py set-path` 更新路径；`setup_state.py reset` 可重置为未完成状态。
+1. **三库骨架（自动，幂等）**：每次触发第一步确认当前工作目录（cwd）下三个并行子文件夹存在——`论文/`（论文库）、`笔记/`（学习笔记库，可直接作为 Obsidian vault 打开）、`书籍/`（教材库）——缺失才创建（`python scripts/init_workspace.py init`，不询问路径、不做全盘扫描）；首次触发时把 `first_trigger_at` 记入 `<skill_dir>/state.json`（信息性，不 gate 任何流程）。
+2. **密钥不预设**：触发时**从不批量询问密钥**。只有**用到某个 key 的那一刻**才检查 `.env`：缺失或失效 → 按「密钥获取与保存规则」向用户获取并保存；已有 → 直接复用，不再问。
+3. **路径覆盖（可选）**：用户已有独立 Obsidian vault / 书籍库目录时，用 `python scripts/setup_state.py set-path <key> <value>` 指定；有则读取复用，没有就用 cwd 默认三库。
 
 ### 状态文件
 
 - 位置：`<skill_dir>/state.json`（本机级，已被 `.gitignore` 排除，**不上传 GitHub**）；
-- **更新保留**：`.env`（密钥）与 `state.json`（配置）都是本机文件；`git pull` 更新或重跑安装脚本都会自动保留，**不会覆盖已保存的密钥与路径**，更新后无需重新配置；
-- 模板：`state.json.example`；查看状态：`python scripts/setup_state.py status`。
+- 作用：仅记录首次/最近触发时间与路径覆盖（`paths`），**不作为任何流程的前置门禁**；
+- **更新保留**：`.env`（密钥）与 `state.json`（记录）都是本机文件；`git pull` 更新或重跑安装脚本都会自动保留，**不会覆盖已保存的密钥与路径**，更新后无需重新配置；
+- 模板：`state.json.example`；查看状态：`python scripts/setup_state.py status`；重置初始化记录：`python scripts/setup_state.py reset`。
 
 ## 三库文件系统（强制）
 
-**三库默认建在当前工作目录（cwd，即当前项目），首次触发自动创建，不询问路径**：
+**三库默认建在当前工作目录（cwd，即当前项目），触发时缺失自动创建，不询问路径**：
 
 ```text
 <当前项目>/                    ← cwd
@@ -90,7 +75,7 @@ description: |
 
 ## 触发路由规则
 
-1. 触发时**先检查 `state.json` 完成首次触发判定**（见「首次触发状态」）并确认三库骨架存在（见「三库文件系统」），再判断用户需求属于哪个流程；无法判断时，询问用户要执行哪个流程。
+1. 触发时**不设任何配置门禁**：确认三库骨架存在（缺失才创建，见「三库文件系统」）并读取 state.json 的路径覆盖（若有），直接判断用户需求属于哪个流程；无法判断时，询问用户要执行哪个流程。
 2. **方向太模糊时，任何流程都不直接开始**：先走流程0（与用户交互 + 文献验证收敛方向），产出 `00_研究方向.md` 后再进入对应流程。
 3. 确定流程后，读取对应文件并执行：
    - 流程0 → `workflows/流程0-研究方向确认.md`
@@ -113,16 +98,20 @@ description: |
 5. **三库导航体系**：论文库导航 `论文/00_索引.md`（库级：研究方向注册表）+ `论文/<主题>/00_项目导航.md`（主题级：本文件）、书籍库导航 `书籍/00_索引.md`（书籍库管理工具维护）、笔记库导航 `笔记/00-导航.md`（学习笔记工具维护）——各管各库、互不替代，统一「文件变动时才更新」纪律。
 
 
-## 密钥获取与保存规则
+## 密钥获取与保存规则（按需获取）
 
-- 密钥**只在首次触发时批量询问缺失项**（判定见「首次触发状态」，教程见 `references/key-setup-guide.md`），保存到本地 `.env` 后，之后触发自动读取，不再反复询问用户。
-- 保存位置：`<skill_dir>/.env`（已被 `.gitignore` 排除，**不会上传到 GitHub**）。
-- 管理命令：`python scripts/manage_keys.py set <KEY> <value>` 保存；`get` / `list` / `delete` 读取、查看、删除。
-- anysearch：触发时若无 `ANYSEARCH_API_KEY` 则询问用户，提供后保存；之后每次自动使用。用户没有 key 则匿名访问。
-- MinerU：`flash` 免认证（轻量模型，限 10MB/20 页）；`extract` 需要 `MINERU_TOKEN`，且默认 `--model vlm`（最高精度，公式/表格/复杂版面最好），扫描版 PDF 加 `--ocr`——转换脚本自动从 `.env` 读取并传 `--token`；缺失时提示用户保存后再跑。
-- paper-fetch：`UNPAYWALL_EMAIL` 缺失时询问用户；提供后保存，之后不再问。
-- 机构认证会话：`PAPER_FETCH_INSTITUTIONAL=1`（+ `PAPER_FETCH_EZPROXY`）可选；cookie jar 存在时流程一自动走两级机构下载（见「机构认证下载」），不属首次触发必问项。
-- 密钥失效/更新：`delete` 删除后重新 `set`。
+**触发时从不批量询问密钥**；密钥只在「功能需要且缺失 / 失效」时获取一次，保存后自动复用：
+
+1. **缺失时**：执行到需要某个 key 的功能（AnySearch 检索 / MinerU `extract` 转换 / Unpaywall 下载 / 机构认证）时，先 `python scripts/manage_keys.py get <KEY>` 检查 `.env`；缺失 → 读取 `references/key-setup-guide.md` 对应小节，把用途 + 获取方式列给用户，用户提供后 `python scripts/manage_keys.py set <KEY> <value>` 保存，**继续执行**；
+2. **可选项可跳过**：用户明确「跳过」/「不用」→ 降级运行、不阻塞：AnySearch 匿名（有次数限制）、MinerU `flash` 免认证、Unpaywall 少一个免费源；未提供前不反复追问；
+3. **失效/过期时**：脚本报 key 相关错误（401 / 403 / invalid / expired / token 失效）→ 明确告知用户「该 key 已失效」，展示对应小节的获取方式，询问新 key → 覆盖保存 → 重试；
+4. **保存后复用**：之后任何触发直接读 `.env`，不再询问；换 key：直接 `manage_keys.py set` 覆盖，或 `delete` 后重新 `set`。
+
+- 保存位置：`<skill_dir>/.env`（已被 `.gitignore` 排除，**不会上传到 GitHub**）；管理命令：`python scripts/manage_keys.py set/get/list/delete`。
+- anysearch：`ANYSEARCH_API_KEY` 缺失时询问（可选，匿名可用），提供后保存自动使用；
+- MinerU：`flash` 免认证（轻量模型，限 10MB/20 页）；`extract` 需要 `MINERU_TOKEN`，默认 `--model vlm`（最高精度，公式/表格/复杂版面最好），扫描版 PDF 加 `--ocr`——转换脚本自动从 `.env` 读取并传 `--token`；token 缺失或 401/403 → 询问用户，选 flash 或提供新 token；
+- paper-fetch：`UNPAYWALL_EMAIL` 缺失时询问（可选），提供后保存，之后不再问；
+- 机构认证会话：`PAPER_FETCH_INSTITUTIONAL=1`（+ `PAPER_FETCH_EZPROXY`）可选；cookie jar 存在时流程一自动走两级机构下载（见「机构认证下载」），cookie 过期（连续 418/登录页/403）→ 重跑登录向导，不影响已保存 key。
 
 ## 机构认证下载（付费墙文献）
 
@@ -211,7 +200,7 @@ $env:CLOAKBROWSER_PYTHON = 'C:\Python313\python.exe'
 | 文档 | 内容 |
 |------|------|
 | `references/zotero-rules.md` | Zotero 目录/缓存规则、Evidence Record 模板、Claim Promotion Gate |
-| `references/key-setup-guide.md` | 首次触发密钥教程（AnySearch / MinerU / Unpaywall 的用途与获取方式） |
+| `references/key-setup-guide.md` | 密钥获取教程（AnySearch / MinerU / Unpaywall 的用途与获取方式，用到时按需查阅） |
 | `references/citation-verification/` | 引用核验规则与 API 用法 |
 | `references/paper-self-review/` | 综述/论文自查清单与最终判定 |
 | `references/nature-writing/` | Nature 风格写作规范（精选章节） |

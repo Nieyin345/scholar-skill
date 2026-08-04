@@ -148,12 +148,19 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
 
 > 任何只认「目录 + SKILL.md」的 Agent 都可用同一方式：把本仓库 clone/复制到一个 Agent 能读到的 skills 目录即可。更新 = 在对应目录 `git pull`（或重新运行安装脚本）。
 >
-> **密钥与配置保留**：`.env`（密钥）与 `state.json`（首次配置状态）是本机文件，已被 `.gitignore` 排除、不上传 GitHub；`git pull` 更新或重跑安装脚本（install.ps1 / install.sh）都会**自动保留**，不会覆盖你设置过的 key 和路径。
+> **密钥与配置保留**：`.env`（密钥）与 `state.json`（初始化记录与路径覆盖）是本机文件，已被 `.gitignore` 排除、不上传 GitHub；`git pull` 更新或重跑安装脚本（install.ps1 / install.sh）都会**自动保留**，不会覆盖你设置过的 key 和路径。
 
-## 首次使用配置
-首次触发由 skill 内建的**状态文件**自动判定：`<skill_dir>/state.json` 不存在或 `setup_complete != true` 即为首次触发。**首次触发时先完成密钥配置（教程见 `references/key-setup-guide.md`），配置完成前不回答用户问题**；配置完成（密钥 + 自动创建三库骨架）写入状态后，再回答用户最初的问题；之后每次触发直接复用，不再询问。可用 `python scripts/setup_state.py status` 查看，`reset` 可重走首次配置。
+## 使用与密钥（无首次配置门禁）
 
-1. **密钥**（可选项，缺失时触发相关功能会询问一次并保存到 `<skill_dir>/.env`）：
+scholar **不设「先配置再使用」的首次触发流程**：触发即用，直接回答你的问题。首次触发只做一件事——在当前工作目录（cwd）自动创建三个并行的子文件夹 `论文/` / `笔记/` / `书籍/`（及各库导航文件，不询问路径）；之后每次触发只在骨架缺失时补建。
+
+**密钥按需获取**：触发时**从不批量询问密钥**；只有**用到某个 key 的那一刻**才检查本地 `.env`——
+
+- 缺失 → 列出用途与获取方式（`references/key-setup-guide.md`），你提供后保存到 `<skill_dir>/.env` 并继续；可选项可明确跳过（降级运行，不阻塞）；
+- 失效/过期（脚本报 401 / 403 / invalid / expired）→ 告知你后重新获取新 key 并覆盖保存，重试；
+- 已有 → 直接复用，不再问；`git pull` / 重装都不会覆盖已保存的 key 与路径。
+
+1. **密钥**（可选项，用到时才问，提供后保存到 `<skill_dir>/.env`）：
    - `ANYSEARCH_API_KEY` — 实时网络搜索（可选，匿名可用）
    - `MINERU_TOKEN` — PDF→MD 精提取（MinerU `extract` 模式需要；`flash` 模式免认证）
    - `UNPAYWALL_EMAIL` — 文献下载 Unpaywall 源（可选）
@@ -168,7 +175,7 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
 
 ## 工作目录约定
 
-**首次触发在当前工作目录（cwd）自动创建三个并行的子文件夹（不询问路径）**：`论文/`（论文库）、`笔记/`（学习笔记库，可直接作为 Obsidian vault 打开）、`书籍/`（教材库）。每个研究方向（主题）在**论文库下**建立独立文件夹（`论文/<主题>/`），skill 维护 `论文/<主题>/00_项目导航.md`（主题导航）与 `论文/00_索引.md`（研究方向注册表）作为目录索引 + 文档管理入口（只在文件变动时更新）：
+**首次触发即在当前工作目录（cwd）自动创建三个并行的子文件夹（不询问路径），之后每次触发只在骨架缺失时补建**：`论文/`（论文库）、`笔记/`（学习笔记库，可直接作为 Obsidian vault 打开）、`书籍/`（教材库）。每个研究方向（主题）在**论文库下**建立独立文件夹（`论文/<主题>/`），skill 维护 `论文/<主题>/00_项目导航.md`（主题导航）与 `论文/00_索引.md`（研究方向注册表）作为目录索引 + 文档管理入口（只在文件变动时更新）：
 
 ```text
 <当前项目>/                  # cwd

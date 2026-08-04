@@ -6,7 +6,7 @@
 #   bash install.sh --agent custom --target /path/to/skills
 #   bash install.sh --repo https://github.com/<user>/<repo>.git --agent auto
 #
-# 本地配置保留：.env（密钥）与 state.json（首次配置状态）是本机文件，更新/重装都会自动保留。
+# 本地配置保留：.env（密钥）与 state.json（初始化记录/路径覆盖）是本机文件，更新/重装都会自动保留。
 set -euo pipefail
 
 REPO_URL="https://github.com/Nieyin345/scholar-skill.git"
