@@ -119,7 +119,7 @@ description: |
 
 ## 机构认证下载（付费墙文献）
 
-公开 OA 源（Unpaywall/S2/arXiv/PMC/OpenAlex/OpenAIRE/MDPI CDN）找不到的 2025+ 付费墙论文（IEEE、Springer、IOP、de Gruyter 等），只能靠机构订阅。scholar 内置完整机构认证下载链路，**不保存账号密码，只保存登录会话 cookie**（`<skill_dir>/.scholar_institutional/cookies.txt`，已被 `.gitignore` 排除，`git pull` 更新不会覆盖）。
+公开 OA 源（Unpaywall/S2/arXiv/PMC/OpenAlex/OpenAIRE/MDPI CDN）找不到的 2025+ 付费墙论文（IEEE、Springer、IOP、de Gruyter 等），只能靠机构订阅。scholar 内置完整机构认证下载链路，**不保存账号密码，只保存登录会话 cookie**（`<skill_dir>/.scholar_institutional/cookies.txt`，已被 `.gitignore` 排除，`git pull` 更新与重跑安装脚本都会保留）。
 
 ### 会话建立（一次性，登录向导）
 

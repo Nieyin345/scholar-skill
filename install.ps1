@@ -5,16 +5,16 @@
 #   .\install.ps1 -Agent custom -TargetDir D:\path\to\skills
 #   .\install.ps1 -RepoUrl https://github.com/<user>/<repo>.git -Agent auto
 #
-# 本地配置保留：.env（密钥）与 state.json（初始化记录/路径覆盖）是本机文件，更新/重装都会自动保留。
+# 本地配置保留：.env（密钥）、state.json（初始化记录/路径覆盖）与 .scholar_institutional/（机构登录 cookie）是本机数据，更新/重装都会自动保留。
 param(
   [string]$Agent = "auto",        # auto / codex / claude / cursor / custom
   [string]$TargetDir = "",
-  [string]$RepoUrl = "https://github.com/Nieyin345/scholar-skill.git",
-  [switch]$Force
+  [string]$RepoUrl = "https://github.com/Nieyin345/scholar-skill.git"
 )
 $ErrorActionPreference = "Stop"
 $SkillName = "scholar"
 $LocalFiles = @(".env", "state.json")
+$LocalDirs = @(".scholar_institutional")
 
 function Install-To([string]$Dest) {
   New-Item -ItemType Directory -Path (Split-Path $Dest -Parent) -Force | Out-Null
@@ -32,27 +32,30 @@ function Install-To([string]$Dest) {
     if (-not (Test-Path (Join-Path $Dest "SKILL.md"))) {
       throw "ERROR: no SKILL.md found in $Dest"
     }
-    Write-Output ">> Updated scholar -> $Dest (本地 .env / state.json 已保留)"
+    Write-Output ">> Updated scholar -> $Dest (本地配置已保留：.env / state.json / 机构 cookie)"
     return
   }
 
   # 全新安装：先备份本地配置（若有），重装后恢复
   $tmpBak = Join-Path $env:TEMP ("scholar-local-" + [guid]::NewGuid().ToString("N"))
   $found = @($LocalFiles | Where-Object { Test-Path (Join-Path $Dest $_) })
-  if ($found.Count -gt 0) {
+  $foundDirs = @($LocalDirs | Where-Object { Test-Path (Join-Path $Dest $_) })
+  if ($found.Count -gt 0 -or $foundDirs.Count -gt 0) {
     New-Item -ItemType Directory -Path $tmpBak | Out-Null
     foreach ($f in $found) { Copy-Item (Join-Path $Dest $f) $tmpBak }
+    foreach ($d in $foundDirs) { Copy-Item -Recurse (Join-Path $Dest $d) $tmpBak }
   }
   if (Test-Path $Dest) { Remove-Item -Recurse -Force $Dest }
   git clone --depth 1 $RepoUrl $Dest | Out-Null
   if (-not (Test-Path (Join-Path $Dest "SKILL.md"))) {
     throw "ERROR: no SKILL.md found in $Dest"
   }
-  if ($found.Count -gt 0) {
+  if ($found.Count -gt 0 -or $foundDirs.Count -gt 0) {
     foreach ($f in $found) { Copy-Item (Join-Path $tmpBak $f) $Dest }
+    foreach ($d in $foundDirs) { Copy-Item -Recurse (Join-Path $tmpBak $d) $Dest }
     Remove-Item -Recurse -Force $tmpBak
   }
-  Write-Output ">> Installed scholar -> $Dest (本地 .env / state.json 已保留)"
+  Write-Output ">> Installed scholar -> $Dest (本地配置已保留：.env / state.json / 机构 cookie)"
 }
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {

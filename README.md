@@ -148,7 +148,7 @@ git clone --depth 1 https://github.com/Nieyin345/scholar-skill.git .cursor/skill
 
 > 任何只认「目录 + SKILL.md」的 Agent 都可用同一方式：把本仓库 clone/复制到一个 Agent 能读到的 skills 目录即可。更新 = 在对应目录 `git pull`（或重新运行安装脚本）。
 >
-> **密钥与配置保留**：`.env`（密钥）与 `state.json`（初始化记录与路径覆盖）是本机文件，已被 `.gitignore` 排除、不上传 GitHub；`git pull` 更新或重跑安装脚本（install.ps1 / install.sh）都会**自动保留**，不会覆盖你设置过的 key 和路径。
+> **密钥与配置保留**：`.env`（密钥）、`state.json`（初始化记录与路径覆盖）与 `.scholar_institutional/`（机构登录 cookie）都是本机数据，已被 `.gitignore` 排除、不上传 GitHub；`git pull` 更新或重跑安装脚本（install.ps1 / install.sh）都会**自动保留**，不会覆盖你设置过的 key、路径与机构登录态。
 
 ## 使用与密钥（无首次配置门禁）
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scholar"
+  short_description: "学术全流程：文献检索/下载/综述→方案→代码→论文写作"
+  default_prompt: "Use $scholar 处理这个学术任务：先按需走流程（细化方向、检索下载文献并转 MD、写综述、设计方案、写代码或写论文），需要插图/笔记/知识库检索时调用对应工具。"

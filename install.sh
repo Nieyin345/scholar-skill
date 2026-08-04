@@ -6,7 +6,7 @@
 #   bash install.sh --agent custom --target /path/to/skills
 #   bash install.sh --repo https://github.com/<user>/<repo>.git --agent auto
 #
-# 本地配置保留：.env（密钥）与 state.json（初始化记录/路径覆盖）是本机文件，更新/重装都会自动保留。
+# 本地配置保留：.env（密钥）、state.json（初始化记录/路径覆盖）与 .scholar_institutional/（机构登录 cookie）是本机数据，更新/重装都会自动保留。
 set -euo pipefail
 
 REPO_URL="https://github.com/Nieyin345/scholar-skill.git"
@@ -48,28 +48,30 @@ install_to() {
     if [[ ! -f "$dest/SKILL.md" ]]; then
       echo "ERROR: no SKILL.md found in $dest"; exit 1
     fi
-    echo ">> Updated scholar -> $dest (本地 .env / state.json 已保留)"
+    echo ">> Updated scholar -> $dest (本地配置已保留：.env / state.json / 机构 cookie)"
     return
   fi
 
   # 全新安装：先备份本地配置（若有），重装后恢复
   local bak=""
-  if [[ -f "$dest/.env" || -f "$dest/state.json" ]]; then
+  if [[ -f "$dest/.env" || -f "$dest/state.json" || -d "$dest/.scholar_institutional" ]]; then
     bak="$(mktemp -d)"
     [[ -f "$dest/.env" ]] && cp "$dest/.env" "$bak/.env"
     [[ -f "$dest/state.json" ]] && cp "$dest/state.json" "$bak/state.json"
+    [[ -d "$dest/.scholar_institutional" ]] && cp -a "$dest/.scholar_institutional" "$bak/"
   fi
   rm -rf "$dest"
   git clone --depth 1 "$REPO_URL" "$dest"
   if [[ -n "$bak" ]]; then
     [[ -f "$bak/.env" ]] && cp "$bak/.env" "$dest/.env"
     [[ -f "$bak/state.json" ]] && cp "$bak/state.json" "$dest/state.json"
+    [[ -d "$bak/.scholar_institutional" ]] && cp -a "$bak/.scholar_institutional" "$dest/"
     rm -rf "$bak"
   fi
   if [[ ! -f "$dest/SKILL.md" ]]; then
     echo "ERROR: no SKILL.md found in $dest"; exit 1
   fi
-  echo ">> Installed scholar -> $dest (本地 .env / state.json 已保留)"
+  echo ">> Installed scholar -> $dest (本地配置已保留：.env / state.json / 机构 cookie)"
 }
 
 if [[ "$AGENT" == "custom" ]]; then
