@@ -59,6 +59,7 @@
 
 ## 5. 与 scholar 的配合
 
+- **嵌入式对话交给 Claudian**：需要「和 AI 聊当前文件 / 划词改稿」时由 Claudian（内嵌本机 Codex CLI，与 scholar 同一套 skill 与登录态）承担；Advanced URI 只做文件级控制（打开 / 定位 / 触发插件命令 / 写属性），两者分工不重叠；
 - 学习笔记 / 文献管理等工具**默认直接用 md 文件写入（零依赖、可靠）**；URI 只用于增强：生成后打开笔记供用户查看、触发 Templater 补模板、刷新 Dataview/Bases 视图、推 obsidian-git 等；
 - 可选 obsidian-cli（官方 CLI，需加入 PATH，`obsidian --version` 可用时）：`create` / `property:set` / `backlinks` / `search` 批量操作（见 `tools/学习笔记.md`）；
 - 所有 URI/CLI 调用失败都不阻塞流程：退回写文件 + 提示用户手动打开。
