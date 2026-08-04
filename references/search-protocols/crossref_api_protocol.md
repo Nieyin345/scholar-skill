@@ -1,7 +1,7 @@
 # Crossref API Verification Protocol
 
 **Status**: v3.9.0
-**Used by**: `bibliography_agent`, `migrate_literature_corpus_to_v3_9_0.py`
+**scholar 内使用**：流程一检索/引用核验按此协议直接 HTTP 调用（DOI 解析/下载：`scripts/fetch.py`；引用核验：`scripts/citation-verification/`）
 **API base**: `https://api.crossref.org`
 **Rate limit**: 10 req/s (polite pool, with `mailto:` in User-Agent), ~5 req/s (anonymous, varies). Confirmed via live `x-rate-limit-limit` / `x-rate-limit-interval` response headers (2026-05).
 **Polite email env var**: `CROSSREF_POLITE_EMAIL` (optional)
@@ -10,9 +10,9 @@
 
 ## Purpose
 
-Provides a third bibliographic-index lookup for v3.9.0 cross-index triangulation per spec v3.9.0 §3.5. Crossref is the DOI registry of record — strongest coverage for journal articles with DOIs. Monograph / chapter coverage is partial (publisher participation dependent). v3.9.0 surfaces `crossref_unmatched` as one of three signals, handled per R-L3-2-A (advisory by default; a user-enabled `contamination_triangulation` strict policy may promote the k=3 triangulation signal to a terminal block — see `shared/references/firm_rules.md`).
+Provides a third bibliographic-index lookup for v3.9.0 cross-index triangulation per spec v3.9.0 §3.5. Crossref is the DOI registry of record — strongest coverage for journal articles with DOIs. Monograph / chapter coverage is partial (publisher participation dependent). v3.9.0 surfaces `crossref_unmatched` as one of three signals, handled per R-L3-2-A (advisory by default; a user-enabled `contamination_triangulation` strict policy may promote the k=3 triangulation signal to a terminal block ；`contamination_triangulation` strict 策略见 流程一「来源质量分级」).
 
-Mirrors the structure of `semantic_scholar_api_protocol.md` and `openalex_api_protocol.md`.
+Mirrors the structure of `openalex_api_protocol.md` and `arxiv_api_protocol.md`.
 
 ## Query Patterns
 
@@ -63,10 +63,10 @@ Crossref returns `type` (e.g., `journal-article`, `book-chapter`). **v3.9.0 igno
 
 ## Client implementation
 
-See `scripts/crossref_client.py`. Class `CrossrefClient` exposes `doi_lookup_with_title_check(doi, expected_title)` and `title_search(title, year=None)`. Both return `dict | None` (the dict being either the `message` for DOI, or one item from `message.items` for title search). Both raise `CrossrefUnavailable` on degradation per the table above.
+scholar 实际用 `scripts/fetch.py`（DOI 解析/下载）与 `scripts/citation-verification/verify-citations.py`；协议参数以下文为准。 Class `CrossrefClient` exposes `doi_lookup_with_title_check(doi, expected_title)` and `title_search(title, year=None)`. Both return `dict | None` (the dict being either the `message` for DOI, or one item from `message.items` for title search). Both raise `CrossrefUnavailable` on degradation per the table above.
 
 ## Cross-references
 
 - Spec: `docs/design/2026-05-17-ars-v3.9.0-cross-index-triangulation-measurement-spec.md` §3.5
-- Mirror template: `deep-research/references/semantic_scholar_api_protocol.md`
-- Sibling protocol: `deep-research/references/openalex_api_protocol.md`
+- 同目录协议：`arxiv_api_protocol.md`、`openalex_api_protocol.md`
+- 同目录协议：`openalex_api_protocol.md`

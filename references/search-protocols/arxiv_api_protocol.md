@@ -1,7 +1,7 @@
 # arXiv API Verification Protocol
 
 **Status**: v3.11 (#182 Delta 1); #495 ToU-alignment refresh (2026-07)
-**Used by**: `bibliography_agent`, `scripts/contamination_signals.py` (`resolve_arxiv_unmatched`)
+**scholar 内使用**：流程一检索按此协议直接 HTTP 调用（封装脚本：`scripts/arxiv_search.py`；DOI 解析/下载：`scripts/fetch.py`）
 **API base**: `http://export.arxiv.org/api/query`
 **Rate limit**: arXiv's API Terms of Use (https://info.arxiv.org/help/api/tou.html): no more than one request every three seconds, a single connection at a time. The limits apply to all machines under the caller's control **as a whole** — multi-machine / multi-client fan-out to overcome them is explicitly prohibited. No polite-pool / higher-tier mechanism.
 **Polite email env var**: none (arXiv has no such convention)
@@ -67,10 +67,10 @@ Note: the unified `lookup_verified` summary (#182 Delta 4, a later batch) narrow
 
 ## Client implementation
 
-See `scripts/arxiv_client.py`. Class `ArxivClient` exposes `arxiv_id_lookup(arxiv_id, expected_title)` and `title_search(title, year=None)`. Both return `dict | None` (the dict being a projected `{title, year}` view of one Atom `<entry>`). Both raise `ArxivUnavailable` on degradation per the table above.
+scholar 实际封装见 `scripts/arxiv_search.py`（本协议描述的外部 client 不存在）；协议参数以下文为准。 Class `ArxivClient` exposes `arxiv_id_lookup(arxiv_id, expected_title)` and `title_search(title, year=None)`. Both return `dict | None` (the dict being a projected `{title, year}` view of one Atom `<entry>`). Both raise `ArxivUnavailable` on degradation per the table above.
 
 ## Cross-references
 
 - Spec: `docs/design/2026-05-21-v3.10-182-promote-citation-gate-spec.md` §2 Delta 1
-- Mirror template: `deep-research/references/crossref_api_protocol.md`
-- Sibling protocols: `deep-research/references/openalex_api_protocol.md`, `deep-research/references/semantic_scholar_api_protocol.md`
+- 同目录协议：`crossref_api_protocol.md`
+- 同目录协议：`openalex_api_protocol.md`、`crossref_api_protocol.md`

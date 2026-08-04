@@ -93,7 +93,7 @@ Sentence skeleton:
 
 Local cite:
 
-1. `references/examples/introduction/version-1-task-then-application.md`
+1. 《introduction/version-1-task-then-application 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ### Version 2
 
@@ -111,7 +111,7 @@ Sentence skeleton:
 
 Local cite:
 
-1. `references/examples/introduction/version-2-application-first.md`
+1. 《introduction/version-2-application-first 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ### Version 3
 
@@ -130,7 +130,7 @@ Sentence skeleton:
 
 Local cite:
 
-1. `references/examples/introduction/version-3-general-to-specific-setting.md`
+1. 《introduction/version-3-general-to-specific-setting 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ### Version 4
 
@@ -158,7 +158,7 @@ Expert note:
 
 Local cite:
 
-1. `references/examples/introduction/version-4-open-with-challenge.md`
+1. 《introduction/version-4-open-with-challenge 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ## Part B: Introduce Technical Challenge for Previous Methods (Very Important)
 
@@ -202,7 +202,7 @@ Sentence skeleton:
 
 Local cite:
 
-1. `references/examples/introduction/technical-challenge-version-1-existing-task.md`
+1. 《introduction/technical-challenge-version-1-existing-task 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ### Technical-Challenge Version 2 (existing task + our insight seen in traditional methods)
 
@@ -225,7 +225,7 @@ Sentence skeleton:
 
 Local cite:
 
-1. `references/examples/introduction/technical-challenge-version-2-existing-task-insight-backed-by-traditional.md`
+1. 《introduction/technical-challenge-version-2-existing-task-insight-backed-by-traditional 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ### Technical-Challenge Version 3 (novel task, no direct methods)
 
@@ -247,7 +247,7 @@ Sentence skeleton:
 
 Local cite:
 
-1. `references/examples/introduction/technical-challenge-version-3-novel-task.md`
+1. 《introduction/technical-challenge-version-3-novel-task 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ## Part C: Introduce Our Pipeline for Solving the Challenge
 
@@ -289,7 +289,7 @@ Sentence skeleton:
 
 Local cite:
 
-1. `references/examples/introduction/pipeline-version-1-one-contribution-multi-advantages.md`
+1. 《introduction/pipeline-version-1-one-contribution-multi-advantages 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ### Pipeline Version 2
 
@@ -315,7 +315,7 @@ Sentence skeleton:
 
 Local cite:
 
-1. `references/examples/introduction/pipeline-version-2-two-contributions.md`
+1. 《introduction/pipeline-version-2-two-contributions 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ### Pipeline Version 3
 
@@ -339,7 +339,7 @@ Sentence skeleton:
 
 Local cite:
 
-1. `references/examples/introduction/pipeline-version-3-new-module-on-existing-pipeline.md`
+1. 《introduction/pipeline-version-3-new-module-on-existing-pipeline 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ### Pipeline Version 4
 
@@ -361,7 +361,7 @@ Sentence skeleton:
 
 Local cite:
 
-1. `references/examples/introduction/pipeline-version-4-observation-driven.md`
+1. 《introduction/pipeline-version-4-observation-driven 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ### Not Recommended Writing
 
@@ -381,23 +381,23 @@ Why not recommended (writing structure warning):
 
 Local cite:
 
-1. `references/examples/introduction/pipeline-not-recommended-abstract-only.md`
+1. 《introduction/pipeline-not-recommended-abstract-only 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ## Example Bank
 
-1. `references/examples/introduction-examples.md`
-2. `references/examples/introduction/version-1-task-then-application.md`
-3. `references/examples/introduction/version-2-application-first.md`
-4. `references/examples/introduction/version-3-general-to-specific-setting.md`
-5. `references/examples/introduction/version-4-open-with-challenge.md`
-6. `references/examples/introduction/technical-challenge-version-1-existing-task.md`
-7. `references/examples/introduction/technical-challenge-version-2-existing-task-insight-backed-by-traditional.md`
-8. `references/examples/introduction/technical-challenge-version-3-novel-task.md`
-9. `references/examples/introduction/pipeline-version-1-one-contribution-multi-advantages.md`
-10. `references/examples/introduction/pipeline-version-2-two-contributions.md`
-11. `references/examples/introduction/pipeline-version-3-new-module-on-existing-pipeline.md`
-12. `references/examples/introduction/pipeline-version-4-observation-driven.md`
-13. `references/examples/introduction/pipeline-not-recommended-abstract-only.md`
+1. 《introduction-examples 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+2. 《introduction/version-1-task-then-application 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+3. 《introduction/version-2-application-first 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+4. 《introduction/version-3-general-to-specific-setting 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+5. 《introduction/version-4-open-with-challenge 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+6. 《introduction/technical-challenge-version-1-existing-task 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+7. 《introduction/technical-challenge-version-2-existing-task-insight-backed-by-traditional 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+8. 《introduction/technical-challenge-version-3-novel-task 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+9. 《introduction/pipeline-version-1-one-contribution-multi-advantages 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+10. 《introduction/pipeline-version-2-two-contributions 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+11. 《introduction/pipeline-version-3-new-module-on-existing-pipeline 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+12. 《introduction/pipeline-version-4-observation-driven 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+13. 《introduction/pipeline-not-recommended-abstract-only 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ## Quick Quality Checklist
 

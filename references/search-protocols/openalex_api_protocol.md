@@ -1,7 +1,7 @@
 # OpenAlex API Verification Protocol
 
 **Status**: v3.9.0; #495 auth/backoff refresh (2026-07)
-**Used by**: `bibliography_agent`, `migrate_literature_corpus_to_v3_9_0.py`
+**scholar 内使用**：流程一检索/引用核验按此协议直接 HTTP 调用（DOI 解析/下载：`scripts/fetch.py`）
 **API base**: `https://api.openalex.org`
 **Rate limit**: freemium daily budget (https://developers.openalex.org/api-reference/authentication) — single-entity GETs effectively unmetered, searches budget-metered; a free API key gives 10× the keyless budget. Burst cap 100 req/s. Client pacing: 10 req/s (authenticated — API key or legacy `mailto`), 1 req/s (anonymous).
 **API key env var**: `OPENALEX_API_KEY` (preferred; free key from openalex.org/settings/api)
@@ -11,7 +11,7 @@
 
 ## Purpose
 
-Provides a second bibliographic-index lookup for v3.9.0 cross-index triangulation per spec v3.9.0 §3.4. Mirrors the structure of `semantic_scholar_api_protocol.md` so adapters and migration tools can swap clients with minimal contract divergence. Used by `bibliography_agent` at ingest time and by the v3.9.0 migration tool for legacy backfill.
+Provides a second bibliographic-index lookup for v3.9.0 cross-index triangulation per spec v3.9.0 §3.4. Mirrors the structure of `crossref_api_protocol.md` so adapters and migration tools can swap clients with minimal contract divergence. Used by `bibliography_agent` at ingest time and by the v3.9.0 migration tool for legacy backfill.
 
 OpenAlex coverage complements Semantic Scholar for OA venues, monographs, and works without DOIs. Per Zhao et al. arXiv:2605.07723 §3, cross-index triangulation reduces false-positive rate vs. single-index detection (e.g., a paper unmatched in S2 but matched in OpenAlex is high-coverage-gap evidence, not fabrication evidence).
 
@@ -63,10 +63,10 @@ Browser retrieval MUST NOT be used to bypass API rate limits or budgets: no fan-
 
 ## Client implementation
 
-See `scripts/openalex_client.py`. The client class `OpenAlexClient` exposes `doi_lookup_with_title_check(doi, expected_title)` and `title_search(title, year=None)` methods. Both return `dict | None`. Both raise `OpenAlexUnavailable` on degradation per the table above. The optional `year` parameter in `title_search` enables a matching-year tiebreaker (+0.05 score bonus) mirroring the S2 client `_lookup_by_title` pattern. The constructor accepts optional `api_key` / `polite_email` overrides; absent those it reads `OPENALEX_API_KEY` / `OPENALEX_POLITE_EMAIL` from the environment. Refusal-path error messages strip the URL query string so `api_key` never lands in logs.
+scholar 实际用 `scripts/fetch.py`（DOI 解析/下载）与 `scripts/anysearch/`（检索）；协议参数以下文为准。 The client class `OpenAlexClient` exposes `doi_lookup_with_title_check(doi, expected_title)` and `title_search(title, year=None)` methods. Both return `dict | None`. Both raise `OpenAlexUnavailable` on degradation per the table above. The optional `year` parameter in `title_search` enables a matching-year tiebreaker (+0.05 score bonus) mirroring the S2 client `_lookup_by_title` pattern. The constructor accepts optional `api_key` / `polite_email` overrides; absent those it reads `OPENALEX_API_KEY` / `OPENALEX_POLITE_EMAIL` from the environment. Refusal-path error messages strip the URL query string so `api_key` never lands in logs.
 
 ## Cross-references
 
 - Spec: `docs/design/2026-05-17-ars-v3.9.0-cross-index-triangulation-measurement-spec.md` §3.4
-- Mirror template: `deep-research/references/semantic_scholar_api_protocol.md`
-- Sibling protocol: `deep-research/references/crossref_api_protocol.md`
+- 同目录协议：`crossref_api_protocol.md`、`arxiv_api_protocol.md`
+- 同目录协议：`crossref_api_protocol.md`

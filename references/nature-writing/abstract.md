@@ -38,7 +38,7 @@ Introduce the technical challenge, then use one to two sentences to present the 
 
 Version 1 local cite:
 
-1. `references/examples/abstract/template-a.md`
+1. 《abstract/template-a 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ## Version 2: Challenge -> Insight -> Contribution
 
@@ -63,7 +63,7 @@ Introduce the technical challenge, then use one to two sentences to present the 
 
 Version 2 local cite:
 
-1. `references/examples/abstract/template-b.md`
+1. 《abstract/template-b 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ## Version 3: Multiple Contributions
 
@@ -85,14 +85,14 @@ Version 3: When there are multiple technical contributions, describe each contri
 
 Version 3 local cite:
 
-1. `references/examples/abstract/template-c.md`
+1. 《abstract/template-c 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ## Example Bank
 
-1. `references/examples/abstract-examples.md`
-2. `references/examples/abstract/template-a.md`
-3. `references/examples/abstract/template-b.md`
-4. `references/examples/abstract/template-c.md`
+1. 《abstract-examples 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+2. 《abstract/template-a 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+3. 《abstract/template-b 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
+4. 《abstract/template-c 示例》（未随 scholar 分发，不读取；按本文件结构与描述自行组织）
 
 ## Abstract Quality Checklist
 

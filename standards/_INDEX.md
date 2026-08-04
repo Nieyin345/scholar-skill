@@ -50,13 +50,13 @@
 
 ### 软件工程/架构类参考（代码架构设计规范）
 
-- 已下载到项目 `ref-external/`（gstack、superpowers、wondelai-skills、ai-agents-public、claude-software-skills、software_development_skills、qodex-ai-agent-skills、context-engineering-kit、melodic-claude-code-plugins），完整清单见 `ref-external/README.md`。
+- 软件工程类参考 skill（gstack、superpowers、wondelai-skills、ai-agents-public、claude-software-skills、software_development_skills、qodex-ai-agent-skills、context-engineering-kit、melodic-claude-code-plugins）已吸收，外部副本已删除（来源见 `README.md`「融合产物」章节）。
 - 与「代码架构设计」最对口：wondelai/design-code-architecture（8 阶段架构旅程 + ADR）、ai-agents-public/software-architecture-design（模式选型决策树）、qodex/system-design（代码风格硬规则）、superpowers（TDD/验证闭环）、gstack（计划/设计评审）。
 - 吸收方式：改写 + 标注来源，更新 `standards/解决方案-代码架构设计.md` 并在更新记录登记。
 
 ### 论文写作类参考（论文写作规范 / 流程四）
 
-- 已下载到 `ref-external/`：latex-document-skill（LaTeX 编译工程，已改写为 Python 跨平台脚本）、ai-development-team（多角色分工 + 负面判据）、alirezarezvani-claude-skills（boardroom 多角色讨论架构）、agent-research-skills（latex-formatting 会议模板与投稿检查）。
+- 写作类参考 skill（latex-document-skill、ai-development-team、alirezarezvani-claude-skills、agent-research-skills 的 latex-formatting）已吸收，外部副本已删除（来源见 `README.md`「融合产物」章节）。
 - 与「论文写作规范」最对口：boardroom（独立立场 → 交叉审阅 → 合成裁决）、ai-development-team（问题未清空不得声称完成）、latex-document-skill（引擎检测/多遍编译/错误解析）。
 - 吸收方式：改写 + 标注来源，更新 `standards/论文写作规范.md` 并在更新记录登记。
 
