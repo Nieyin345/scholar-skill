@@ -8,16 +8,17 @@ This template provides the skeleton for a thematic literature review paper that 
 所有生成文档都在 Obsidian vault 中，内部引用统一用 Obsidian wikilink `[[…]]`（自动跟踪改名、生成反向链接与图谱）；相对 Markdown 链接仅用于导出到 Obsidian 外（如 GitHub 预览）。
 
 - 每处正文引用与参考文献条目必须**可点击跳转到对应论文 MD**，禁止纯文本编号：
-  - 正文：`[[论文/<主题>/<论文短名-年>/<md文件名>|<作者 年份>]]`（md 名唯一可简写 `[[<md文件名>|…]]`）
-  - 参考文献：`[[论文/<主题>/<论文短名-年>/<md文件名>|<完整参考文献>]]`
+  - **编号样式**：正文引用显示为编号 `[1]`、`[2]`…（不是作者名），按首次出现顺序全局编号，同一文献复用同一编号；
+  - 正文：`[[论文/<主题>/<论文短名-年>/<md文件名>|[编号]]]`（md 名唯一可简写 `[[<md文件名>|[编号]]]`）
+  - 参考文献：`[[论文/<主题>/<论文短名-年>/<md文件名>|[编号] <完整参考文献>]]`
 - **链接目标是 md 文件，不是文件夹名**；写前用 `rg --files 论文/<主题> -g "*.md"` 核对真实文件名；历史遗留文件以实际文件名为准。
 - 转换稿 md 顶部自带「原文 PDF」链接（`[[<论文短名-年>.pdf]]`，转换脚本自动插入），需要跳 PDF 时直接链它。
 - 未下载 / 未转换的文献不得出现在正文引用与参考文献。
 
 示例：
-- 正文：Transformer-based schedulers achieve lower blocking ...（[[论文/<主题>/2020-multi-tenant-prov/2020-multi-tenant-prov|Cao et al. 2020]]）
+- 正文：Transformer-based schedulers achieve lower blocking ...（[[论文/<主题>/2020-multi-tenant-prov/2020-multi-tenant-prov|[1]]]）
 - 参考文献：
-  1. [[论文/<主题>/2020-multi-tenant-prov/2020-multi-tenant-prov|Cao, Y., et al. Multi-Tenant Provisioning for QKD Networks. IEEE TNSM, 2020.]]
+  1. [[论文/<主题>/2020-multi-tenant-prov/2020-multi-tenant-prov|[1] Cao, Y., et al. Multi-Tenant Provisioning for QKD Networks. IEEE TNSM, 2020.]]
 
 ---
 
