@@ -34,8 +34,10 @@ scholar 不是从零编写的单一 Skill，而是**多个公开 Skill / 插件 
 | AnySearch | https://github.com/anysearch-ai/anysearch-skill | `scripts/anysearch/` | 实时搜索 CLI（Apache-2.0） |
 | scientific-illustrator | https://github.com/icebird1998/scientific-illustrator | `plugins/scientific-illustrator/` | 科研插图 MCP 后端（3 个 server + 6 个子 skill，MIT） |
 | MinerU | https://github.com/opendatalab/MinerU | `scripts/mineru/` + `convert_pdf_to_md.py` | PDF→MD 精提取 CLI |
-| research-ideation | 本地 skill 生态吸收（无公开链接） | `references/research-ideation/` | 研究方向引导全套：5W1H / gap 分析 / 研究问题 / 方法选择 / 检索策略 / 研究计划 |
-| citation-verification / nature-writing / paper-self-review | 本地 skill 生态吸收（无公开链接） | `references/` 对应目录 | 引用核验、Nature 风格写作、论文自查与判定 |
+| research-ideation | https://github.com/Galaxy-Dawn/claude-scholar | `references/research-ideation/` | 研究方向引导全套：5W1H / gap 分析 / 研究问题 / 方法选择 / 检索策略 / 研究计划 |
+| citation-verification | https://github.com/Galaxy-Dawn/claude-scholar | `references/citation-verification/` | 引用核验（证据纪律 / 撤回检查） |
+| nature-writing | https://github.com/Yuan1z0825/nature-skills | `references/nature-writing/` | Nature 风格写作规范 |
+| paper-self-review | https://github.com/Galaxy-Dawn/claude-scholar | `references/paper-self-review/` | 论文自查与判定 |
 
 ### 方法论与规范吸收（进入 standards / workflows，标注来源改写）
 
@@ -60,12 +62,22 @@ scholar 不是从零编写的单一 Skill，而是**多个公开 Skill / 插件 
 | langchain-skills | https://github.com/langchain-ai/langchain-skills | 检索→生成两阶段思想（scholar 落地为无向量版） |
 | wshobson/agents | https://github.com/wshobson/agents | RAG 生成纪律「有据才答」（反模式对照） |
 
-### 本地生态吸收（已内嵌，无公开链接）
+### 本地生态吸收（来源已定位，完整内嵌）
 
-- obsidian-literature-workflow / obsidian-source-ingestion / obsidian-project-kb-core / obsidian-markdown / zotero-obsidian-bridge：Obsidian 知识库结构、wiki 链接互链、Zotero 证据纪律（学习笔记 / 知识库检索工具）。
-- ml-paper-writing：主张-证据纪律（Claim Ledger Gate、Claim Audit）（论文写作规范）。
+| 融合来源 | 链接 | 吸收位置 | 吸收内容 |
+|----------|------|----------|----------|
+| claude-scholar（obsidian 系） | https://github.com/Galaxy-Dawn/claude-scholar | `references/` + `standards/` + `tools/` | obsidian-literature-workflow / obsidian-source-ingestion / obsidian-project-kb-core / obsidian-markdown / zotero-obsidian-bridge：Obsidian 知识库结构、wiki 链接互链、Zotero 证据纪律（学习笔记 / 知识库检索工具） |
+| claude-scholar（写作系） | https://github.com/Galaxy-Dawn/claude-scholar | `standards/` + `references/` | ml-paper-writing：主张-证据纪律（Claim Ledger Gate / Claim Audit）；writing-anti-ai；research-ideation / citation-verification / paper-self-review 等 |
+| kepano/obsidian-skills | https://github.com/kepano/obsidian-skills | `references/` + `tools/` | obsidian-bases / obsidian-cli / obsidian-kb-artifacts / json-canvas：Obsidian 原生格式约定与 CLI 自动化（学习笔记可选增强） |
+| nature-skills | https://github.com/Yuan1z0825/nature-skills | `references/nature-writing/` + `standards/` | nature-writing / nature-polishing / nature-downloader / nature-reviewer 全套学术写作规范 |
+| academic-writing-skills | https://github.com/WenyuChiou/academic-writing-skills | `standards/` | paper-audit v6.0：过度声称护栏 / 术语保护 / 检查清单 |
+| humanize-academic-writing | https://github.com/momo2young/humanize-academic-writing | `standards/` | 反 AI 腔改写原则 |
+| academic-research-skills（ARS） | https://github.com/Imbad0202/academic-research-skills | `references/` + `workflows/` | literature_strategist_agent / synthesis_agent 综述策略 |
+| cangjie-skill | https://github.com/kangarooking/cangjie-skill | `tools/学习笔记.md` | 长篇资料提炼方法论（学习笔记工具可选参考） |
+| Obsidian 官方文档 | https://help.obsidian.md/obsidian-flavored-markdown | `references/` | Obsidian Flavored Markdown 语法标准 |
 
-> 「本地 skill 生态吸收」指最初来自本机已安装的 skill，方法论已改写进 scholar 并标注来源；完整吸收映射见 `00_markdown/项目介绍.md`、`ref-external/README.md`（参考源）与各 `standards/` / `references/` 文件内「参考来源」。
+> 「本地 skill 生态吸收」指最初来自本机已安装的 skill / 公开仓库，方法论已改写进 scholar 并**完整内嵌**（运行时不依赖任何外部 Skill 或插件）；与各 `standards/` / `references/` / `tools/` 文件内「参考来源」标注一一对应。
+
 ## 目录结构
 
 ```text
