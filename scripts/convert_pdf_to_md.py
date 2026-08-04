@@ -9,7 +9,7 @@ http.Client 单请求 60s 超时，而到阿里云上海 OSS 的上传常仅 40-
 
 转换档位（精度从低到高）：
   - flash（默认，免认证）：轻量 pipeline 模型，Markdown only；限制 <= 10MB / <= 20 页；
-    速度快但版面/公式/表格还原一般，适合快速预览与草稿。
+    速度快但版面/公式/表格还原一般，适合快速预览与草稿（**不提取图片，无 images/ 图床**）。
   - extract + pipeline：精提取传统高精度模型，保留布局 + 图片/表格/公式资产；需 MINERU_TOKEN。
   - extract + vlm（推荐，--model vlm 默认）：精提取最高精度模型，复杂版面/公式/表格还原最好；
     需 MINERU_TOKEN。
@@ -245,6 +245,10 @@ def api_flash_convert(source: str, out_dir: Path, language: str, upload_timeout:
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / ((md_name or stem) + ".md")
     target.write_text(md_text, encoding="utf-8")
+    print(
+        "[convert] 提示：flash 模式不提取图片（无 images/ 图床），正式入库请用 --mode extract --model vlm",
+        file=sys.stderr,
+    )
     return str(target)
 
 
@@ -406,6 +410,11 @@ def _convert_via_cli(pdf: Path, out_dir: Path, mode: str, language: str, timeout
     target = out_dir / ((md_name or pdf.stem) + ".md")
     if produced[0].resolve() != target.resolve():
         shutil.move(str(produced[0]), str(target))
+    if mode != "extract":
+        print(
+            "[convert] 提示：flash 模式不提取图片（无 images/ 图床），正式入库请用 --mode extract --model vlm",
+            file=sys.stderr,
+        )
     return {"ok": True, "pdf": str(pdf), "md": str(target), "mode": mode, "via": "cli"}
 
 
