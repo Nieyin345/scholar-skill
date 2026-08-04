@@ -15,6 +15,27 @@ import subprocess
 import sys
 from pathlib import Path
 
+
+def _load_skill_dotenv() -> None:
+    """加载 <skill_dir>/.env（manage_keys 保存的 CLOAKBROWSER_PYTHON / PAPER_FETCH_* 等），
+    不覆盖已显式设置的环境变量。"""
+    env_file = Path(__file__).resolve().parent.parent / ".env"
+    try:
+        for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+    except OSError:
+        pass
+
+
+_load_skill_dotenv()
+
 CLOAK_HINT = """未找到能 import cloakbrowser 的 Python 解释器（已探测: {tried}）。
 解决方式（任选其一）：
   1) 设置环境变量指向已装 cloakbrowser 的解释器（推荐，脚本会自动使用）：
