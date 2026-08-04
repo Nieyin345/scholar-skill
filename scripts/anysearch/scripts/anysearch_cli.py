@@ -29,7 +29,12 @@ def _load_env():
     variable to match the documented priority order.
     """
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    for env_path in [os.path.join(script_dir, ".env"), os.path.join(script_dir, "..", ".env")]:
+    # scholar 密钥统一保存在 <skill_dir>/.env（manage_keys.py）；最后兜底搜索，local 优先
+    for env_path in [
+        os.path.join(script_dir, ".env"),
+        os.path.join(script_dir, "..", ".env"),
+        os.path.join(script_dir, "..", "..", "..", ".env"),
+    ]:
         if os.path.isfile(env_path):
             with open(env_path, "r", encoding="utf-8-sig") as f:
                 for line in f:
