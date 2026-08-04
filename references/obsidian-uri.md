@@ -1,8 +1,8 @@
 # Obsidian 命令行 / URI 控制参考（Advanced URI）
 
 > 场景：scholar 在学习笔记、文献管理、写作跳转中需要「打开指定笔记 / 触发插件命令 / 写入属性」。
-> 前提：Obsidian 已打开对应库（vault）；Advanced URI 插件已安装（`learning_space` 已装 v2.0.0）。
-> vault 名 = 库文件夹名（如 `learning_space`）；库名统一从 `state.json` 的 `obsidian_vault` 取，未配置时询问用户一次。
+> 前提：Obsidian 已打开对应库（vault）；Advanced URI 插件已安装（是否已装**用时探测**：读 `<vault>/.obsidian/community-plugins.json`，含 `obsidian-advanced-uri` 即已启用；不预先维护清单）。
+> vault 名 = 库文件夹名；库名统一从 `state.json` 的 `obsidian_vault` 取，未配置时询问用户一次。
 
 ## 1. 基础规则
 
@@ -10,6 +10,7 @@
 - `vault` 参数必填，放第一位：`vault=learning_space`；
 - 触发方式：浏览器地址栏 / PowerShell `Start-Process "obsidian://advanced-uri?vault=..."` / `start obsidian://...`；
 - **失败不阻塞**：Obsidian 未开 / 库未加载 / 插件未启用 → URI 静默失败，一律退回直接写 md 文件并提示用户手动打开。
+- **不维护清单**：本文件是**用法参考**，不是插件清单；插件与命令 id 一律用时探测，装/卸插件无需改本文件。
 
 ## 2. 打开与定位（核心）
 
@@ -31,18 +32,29 @@
 | 用剪贴板内容新建 | `&new=<路径>&clipBoard=true` |
 | 设置属性 | `&filepath=<笔记>&property=<键>&value=<值>`（按需加 `propertytype=number|boolean|date|checkbox`） |
 
-## 4. 触发命令（插件功能的关键）
+## 4. 触发命令（插件功能的关键，命令 id 用时直接探测）
 
-`&commandid=<插件id>:<命令id>` 可执行**任何命令面板命令**——包括其他插件（Templater / Dataview / QuickAdd / obsidian-git…）。命令 id 可在「设置 → 命令面板 → 显示命令 id」里查，或试 `插件id:命令名小写-连字符`。
+`&commandid=<插件id>:<命令id>` 可执行**任何命令面板命令**——包括其他插件（Templater / Dataview / QuickAdd / obsidian-git…）。
 
-| 目的 | URI |
+**不维护静态命令清单**：需要触发某个插件的命令时，现场直接探测（30 秒内）：
+
+1. 读 `<vault>/.obsidian/community-plugins.json` → 已启用插件列表（再看 `plugins/` 目录确认已装）；
+2. 在目标插件 `main.js` 里搜索 `id:"<本地命令id>"`（命令注册处），插件 id 见该插件 `manifest.json` 的 `id` 字段；
+3. 完整命令 id = `<插件id>:<本地命令id>`（如 Templater 的 `id:"insert-templater"` + 插件 id `templater-obsidian` → `templater-obsidian:insert-templater`）；
+4. 拼 URI 执行；不确定就先在目标笔记上试一次（命令无反应= id 不对或插件未启用）。
+
+已核验示例（本机 Templater 2.16.4 / obsidian-git 2.38.6 / QuickAdd 2.9.4 实测提取）：
+
+| 目的 | 命令 id（完整） |
 |------|------|
-| 插入 Templater 模板 | `&filepath=<笔记>&commandid=templater-obsidian:insert-templater` |
-| 打开 Dataview 面板 | `&commandid=dataview:dataview-pane-open` |
-| 触发 git 推送 | `&commandid=obsidian-git:push` |
-| 带参数执行（QuickAdd 等） | `&commandid=quickadd:run-quickadd&commandargs=<json>` |
+| 插入 Templater 模板 | `templater-obsidian:insert-templater` |
+| 新建笔记套模板 | `templater-obsidian:create-new-note-from-template` |
+| git 推送 | `obsidian-git:push` |
+| git 拉取 | `obsidian-git:pull` |
+| git 提交（默认消息） | `obsidian-git:commit` |
+| QuickAdd 执行 | `quickadd:runQuickAdd` |
 
-> 触发命令前先带 `filepath=` 指定目标笔记（命令作用于当前笔记）；命令无反应时核对命令 id 与插件是否启用。
+> 触发命令前先带 `filepath=` 指定目标笔记（命令作用于当前笔记）；以现场探测到的 id 为准，上面的示例只作参考。
 
 ## 5. 与 scholar 的配合
 
