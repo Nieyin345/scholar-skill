@@ -228,6 +228,7 @@ $env:CLOAKBROWSER_PYTHON = 'C:\Python313\python.exe'
 | 知识库检索 | 无向量 RAG 问答：回答问题时检索本地论文/笔记/书籍/Zotero 缓存并溯源（`rg` 关键词召回 + LLM 相关性 + 整页读取，不做 embedding） | 检索我的知识库 / 参考我的笔记 / 根据我的文档回答 / 查一下我之前记的 / rag / retrieve / grounded answer | `tools/知识库检索.md` | 无（`rg` 已具备，无需脚本与密钥） |
 
 - 工具不是流程步骤：由用户在任意流程中按需触发，或流程三/四需要图表素材时调用；
+- Obsidian 插件调用判断（何时用 Advanced URI 触发插件命令 vs 直接写文件）见 `references/obsidian-uri.md` §6：默认直接写文件，只有打开供查看 / 用户要求 / 刷新视图等明确价值才调 URI；
 - 工具产出（`论文/<主题>/figures/`，示意图目录）是流程四论文素材；实验数据图在 `论文/<主题>/implementation/figures/`（流程三按 03 §4 产出），两类图不混放；
 - 新增工具时在此表登记一行，并在 `tools/` 下新建对应文档。
 
