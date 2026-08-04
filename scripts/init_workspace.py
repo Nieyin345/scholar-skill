@@ -9,12 +9,15 @@
 命令：
   init                  创建三库骨架 + 论文/00_索引.md + 笔记/00-导航.md + 书籍/00_索引.md（幂等，不扫描）
   add-topic <主题>      在论文库下创建研究方向文件夹：论文/<主题>/ + 00_项目导航.md + 登记论文/00_索引.md
+  thesis-template <主题> 在论文/<主题>/ 下创建 LaTeX 模板目录 thesis/（默认复制内置模板；--from 用用户模板，支持目录或 .zip）
   list-topics           列出论文库已登记的研究方向
   cleanup-tmp           清空 .scholar_tmp/（会话结束时调用；只删该目录内容，不删其他文件）
 
 用法示例：
   python scripts/init_workspace.py init --project "D:/path/to/project"
   python scripts/init_workspace.py add-topic "GNN强化学习网络资源调度" --project "D:/path/to/project"
+  python scripts/init_workspace.py thesis-template "GNN强化学习网络资源调度" --project "D:/path/to/project"
+  python scripts/init_workspace.py thesis-template "GNN强化学习网络资源调度" --from "D:/downloads/IEEEtran.zip" --project "D:/path/to/project"
 """
 from __future__ import annotations
 
@@ -32,6 +35,7 @@ PAPERS_DIR = "论文"
 NOTES_DIR = "笔记"
 BOOKS_DIR = "书籍"
 TMP_DIR = ".scholar_tmp"
+LATEX_TEMPLATE_DIR = SKILL_DIR / "references" / "latex-template"
 
 PAPERS_INDEX_HEADER = """# 论文库索引
 
@@ -213,6 +217,76 @@ def add_topic(topic: str, project: Path) -> dict:
     }
 
 
+def thesis_template(topic: str, project: Path, from_path: str | None = None, force: bool = False) -> dict:
+    """创建/更新论文 LaTeX 模板目录 论文/<主题>/thesis/。
+
+    from_path 为空 → 复制内置默认模板（references/latex-template/）；
+    from_path 为目录或 .zip → 用用户模板（zip 若只有单一顶层文件夹会自动去掉该层）。
+    thesis/ 已存在且非空且未传 force → 不覆盖（返回 existing 提示）。
+    """
+    if not topic or topic.strip() in {".", ".."}:
+        return {"ok": False, "error": "主题名不能为空或路径分隔符"}
+    papers = project / PAPERS_DIR
+    topic_dir = papers / topic.strip()
+    if not topic_dir.exists():
+        return {"ok": False, "error": f"研究方向文件夹不存在：{topic_dir}（先用 add-topic 创建）"}
+    thesis_dir = topic_dir / "thesis"
+    existing = sorted(p.name for p in thesis_dir.iterdir()) if thesis_dir.exists() else []
+    if existing and not force:
+        return {
+            "ok": True,
+            "thesis": str(thesis_dir),
+            "source": "existing",
+            "files": existing,
+            "note": "thesis/ 已存在且非空，未覆盖；确需换模板请加 --force",
+        }
+    if thesis_dir.exists():
+        shutil.rmtree(thesis_dir)
+    thesis_dir.mkdir(parents=True, exist_ok=True)
+
+    if from_path:
+        src = Path(from_path).expanduser()
+        if not src.exists():
+            return {"ok": False, "error": f"模板路径不存在：{src}"}
+        if src.is_file() and src.suffix.lower() == ".zip":
+            import zipfile
+            with zipfile.ZipFile(src) as zf:
+                file_names = [n for n in zf.namelist() if not n.endswith("/")]
+                top_levels = {n.split("/", 1)[0] for n in file_names}
+                single_top = len(top_levels) == 1 and any("/" in n for n in file_names)
+                if single_top:
+                    prefix = next(iter(top_levels)) + "/"
+                    for n in zf.namelist():
+                        if not n.startswith(prefix):
+                            continue
+                        rel = n[len(prefix):]
+                        if not rel:
+                            continue
+                        target = thesis_dir / rel
+                        if n.endswith("/"):
+                            target.mkdir(parents=True, exist_ok=True)
+                        else:
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            with zf.open(n) as s, open(target, "wb") as d:
+                                shutil.copyfileobj(s, d)
+                else:
+                    zf.extractall(thesis_dir)
+            source = str(src)
+        elif src.is_dir():
+            shutil.copytree(src, thesis_dir, dirs_exist_ok=True)
+            source = str(src)
+        else:
+            return {"ok": False, "error": f"不支持的模板文件（仅支持目录或 .zip）：{src}"}
+    else:
+        if not LATEX_TEMPLATE_DIR.exists():
+            return {"ok": False, "error": f"默认模板缺失：{LATEX_TEMPLATE_DIR}"}
+        shutil.copytree(LATEX_TEMPLATE_DIR, thesis_dir, dirs_exist_ok=True)
+        source = "default:" + str(LATEX_TEMPLATE_DIR)
+
+    files = sorted(p.name for p in thesis_dir.iterdir() if p.is_file())
+    return {"ok": True, "thesis": str(thesis_dir), "source": source, "files": files}
+
+
 def list_topics(project: Path) -> dict:
     papers = project / PAPERS_DIR
     index = papers / "00_索引.md"
@@ -259,6 +333,12 @@ def main() -> int:
     p_add.add_argument("topic", help="研究方向名称")
     p_add.set_defaults(fn=add_topic)
 
+    p_thesis = sub.add_parser("thesis-template", parents=[common], help="创建/更新论文 LaTeX 模板目录 论文/<主题>/thesis/")
+    p_thesis.add_argument("topic", help="研究方向名称")
+    p_thesis.add_argument("--from", dest="from_path", default=None, help="用户模板路径（目录或 .zip）；缺省复制内置默认模板")
+    p_thesis.add_argument("--force", action="store_true", help="thesis/ 已存在时先清空再放入新模板")
+    p_thesis.set_defaults(fn=thesis_template)
+
     p_list = sub.add_parser("list-topics", parents=[common], help="列出论文库已登记的研究方向")
     p_list.set_defaults(fn=list_topics)
 
@@ -272,6 +352,8 @@ def main() -> int:
             result = args.fn(project)
         elif args.cmd == "add-topic":
             result = args.fn(args.topic, project)
+        elif args.cmd == "thesis-template":
+            result = args.fn(args.topic, project, args.from_path, args.force)
         else:
             result = args.fn(project)
     except Exception as e:  # noqa: BLE001
