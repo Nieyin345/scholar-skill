@@ -11,6 +11,7 @@
 - 触发方式：浏览器地址栏 / PowerShell `Start-Process "obsidian://advanced-uri?vault=..."` / `start obsidian://...`；
 - **失败不阻塞**：Obsidian 未开 / 库未加载 / 插件未启用 → URI 静默失败，一律退回直接写 md 文件并提示用户手动打开。
 - **不维护清单**：本文件是**用法参考**，不是插件清单；插件与命令 id 一律用时探测，装/卸插件无需改本文件。
+- **未装 Advanced URI 时提醒安装（必做）**：需要 URI 功能而 `<vault>/.obsidian/community-plugins.json` 里没有 `obsidian-advanced-uri` → **先提醒用户安装**：Obsidian → 设置 → 第三方插件（Community plugins）→ 浏览 → 搜索「Advanced URI」→ 安装并启用；手动安装：到 https://github.com/Vinzent03/obsidian-advanced-uri/releases 下载对应版本，解压到 `<vault>/.obsidian/plugins/obsidian-advanced-uri/`，然后在「第三方插件」里启用。装完重试 URI；用户暂时不装 → 退回直接写 md 文件（不阻塞）。
 
 ## 2. 打开与定位（核心）
 
