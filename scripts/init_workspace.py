@@ -10,6 +10,7 @@
   init                  创建三库骨架 + 论文/00_索引.md + 笔记/00-导航.md + 书籍/00_索引.md（幂等，不扫描）
   add-topic <主题>      在论文库下创建研究方向文件夹：论文/<主题>/ + 00_项目导航.md + 登记论文/00_索引.md
   list-topics           列出论文库已登记的研究方向
+  cleanup-tmp           清空 .scholar_tmp/（会话结束时调用；只删该目录内容，不删其他文件）
 
 用法示例：
   python scripts/init_workspace.py init --project "D:/path/to/project"
@@ -30,6 +31,7 @@ NAV_TEMPLATE = SKILL_DIR / "references" / "project-navigation-template.md"
 PAPERS_DIR = "论文"
 NOTES_DIR = "笔记"
 BOOKS_DIR = "书籍"
+TMP_DIR = ".scholar_tmp"
 
 PAPERS_INDEX_HEADER = """# 论文库索引
 
@@ -96,6 +98,15 @@ NOTES_NAV_HEADER = """# 00-导航
 8. **只增不删**：历史保留在更新记录与版本存档中，不删除历史。
 """
 
+TMP_README = """# .scholar_tmp（临时工作区，可随时清空）
+
+> 本目录存放 scholar 会话过程中的临时脚本与中间产物（搜索缓存、临时 py/json/txt 等）。
+> 纪律：
+> 1. 临时脚本/中间产物一律放这里，**禁止散落在项目根目录**；
+> 2. 会话结束（或工作流阶段门禁通过）时调用 `python scripts/init_workspace.py cleanup-tmp` 清空；
+> 3. 本目录以 `.` 开头，Obsidian 默认隐藏；不登记进任何导航文档。
+"""
+
 BOOKS_INDEX_HEADER = """# 书籍库索引
 
 > 本索引由「书籍库管理」工具维护（只增不删）。结构：书籍/<方向>/<教材名>/（pdf + md + 图床）。
@@ -139,6 +150,12 @@ def init(project: Path) -> dict:
     (notes / "Maps").mkdir(exist_ok=True)
     (notes / "_system").mkdir(exist_ok=True)
 
+    tmp_dir = project / TMP_DIR
+    tmp_dir.mkdir(exist_ok=True)
+    tmp_readme = tmp_dir / "README.md"
+    if not tmp_readme.exists():
+        tmp_readme.write_text(TMP_README, encoding="utf-8")
+
     papers_index = _ensure_papers_index(papers)
 
     notes_nav = notes / "00-导航.md"
@@ -162,6 +179,7 @@ def init(project: Path) -> dict:
         "papers_index": str(papers_index),
         "notes_nav_created": created_notes,
         "books_index_created": created_books,
+        "tmp_dir": str(tmp_dir),
     }
 
 
@@ -209,6 +227,23 @@ def list_topics(project: Path) -> dict:
     return {"ok": True, "topics": topics, "papers_index": str(index)}
 
 
+
+def cleanup_tmp(project: Path) -> dict:
+    tmp_dir = project / TMP_DIR
+    if not tmp_dir.exists():
+        return {"ok": True, "tmp_dir": str(tmp_dir), "removed": [], "note": "临时目录不存在，无需清理"}
+    removed = []
+    for item in sorted(tmp_dir.iterdir()):
+        if item.name == "README.md":
+            continue
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+        removed.append(item.name)
+    return {"ok": True, "tmp_dir": str(tmp_dir), "removed": removed}
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -226,6 +261,9 @@ def main() -> int:
 
     p_list = sub.add_parser("list-topics", parents=[common], help="列出论文库已登记的研究方向")
     p_list.set_defaults(fn=list_topics)
+
+    p_clean = sub.add_parser("cleanup-tmp", parents=[common], help="清空 .scholar_tmp/（只删该目录内容）")
+    p_clean.set_defaults(fn=cleanup_tmp)
 
     args = ap.parse_args()
     project = Path(args.project).expanduser().resolve()

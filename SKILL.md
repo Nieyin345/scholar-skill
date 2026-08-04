@@ -59,15 +59,24 @@ description: |
 │       └── <论文短名-年>/     ← 每篇论文一个文件夹：pdf + md
 ├── 笔记/                      ← 学习笔记库（可直接作为 Obsidian vault 打开）
 │   ├── 00-导航.md / 02-Index.md / Sources/Papers/ / Knowledge/ / _system/
-└── 书籍/                      ← 教材库（书籍库管理工具维护）
-    ├── 00_索引.md
-    └── <方向>/<教材名>/（pdf + md + 图床）
+├── 书籍/                      ← 教材库（书籍库管理工具维护）
+│   ├── 00_索引.md
+│   └── <方向>/<教材名>/（pdf + md + 图床）
+└── .scholar_tmp/               ← 临时工作区（会话结束清理；Obsidian 隐藏点目录）
 ```
 
 - 创建命令：`python scripts/init_workspace.py init`（幂等，已存在则跳过，**不做全盘扫描**）；新建研究方向：`python scripts/init_workspace.py add-topic "<主题>"`（在 `论文/<主题>/` 建文件夹 + `00_项目导航.md` + 登记 `论文/00_索引.md`）；
 - **每次触发第一步确认三库骨架存在**（缺失才创建，不检查其他文件系统内容）；**研究方向文件夹一律建在论文库下**（`论文/<主题>/`），禁止在 cwd 根目录直接创建主题文件夹；
 - 三库各自导航文件各管各库，统一「文件变动时才更新」纪律（见「项目导航文档」）；
 - 用户已有独立 Obsidian vault / 书籍库目录：用 `setup_state.py set-path` 覆盖默认位置（可选，不强制）。
+
+### 工作纪律（防混乱 + 提速，强制）
+
+1. **临时文件不进项目根目录**：所有临时脚本与中间产物（`_*.py` / `_*.txt` / `_*.json` 等）一律放 `<项目>/.scholar_tmp/`（`init` 已创建）；阶段结束或会话结束时运行 `python scripts/init_workspace.py cleanup-tmp` 清空；**禁止在项目根目录或主题文件夹散落临时文件**；
+2. **优先用自带脚本，不手写重复轮子**：检索用 `scripts/anysearch/`（`search` / `batch_search`，注意 anysearch **没有 `-o` 参数**）与 `scripts/arxiv_search.py`（`-o/--output` 是其专属参数，别混用）；下载用 `scripts/fetch.py`（可一次传多个 DOI）；转换用 `scripts/convert_pdf_to_md.py`；确需写临时脚本 → 必须放 `.scholar_tmp/`；
+3. **下载成功才建论文文件夹**：`论文/<主题>/<论文短名-年>/` 文件夹只在 PDF 成功落地后创建；下载失败的 DOI **不建文件夹**（已误建则删除空文件夹），只在 `01_检索结果.md` 标记 reason；
+4. **长文先目录后小节**：综述/长文先读章节标题与目录，再按需读相关小节，**不重复整篇读取**（已读内容不复读）；批量检索一次查询到位，避免逐条小步调用拖慢节奏；
+5. **Windows 编码**：运行脚本时如遇控制台编码报错（GBK/UnicodeDecodeError），先执行 `$env:PYTHONIOENCODING = "utf-8"` 再跑（脚本已内置 UTF-8 输出处理）。
 
 ## 流程总览
 

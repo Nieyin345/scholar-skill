@@ -87,7 +87,7 @@ def ingest(pdf: Path, category: str, title: str, mode: str, root: Path) -> dict:
         return result
     proc = subprocess.run(
         [sys.executable, str(CONVERT), str(pdf), "--out", str(target_dir), "--mode", mode],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     try:
         conv = json.loads(proc.stdout)

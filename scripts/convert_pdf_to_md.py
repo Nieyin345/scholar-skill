@@ -71,6 +71,8 @@ def ensure_bin(bin_path: str) -> str:
                 [pwsh, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(BUNDLED_INSTALLER)],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=600,
             )
             if proc.returncode != 0:
@@ -110,8 +112,9 @@ def convert(pdf: Path, out_dir: Path, mode: str, language: str, timeout: int, bi
     else:
         cmd += ["flash-extract", str(pdf), "-o", str(out_dir), "--language", language, "--timeout", str(timeout)]
 
-    print(f"[convert] 运行: {' '.join(cmd)}", file=sys.stderr)
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    shown = [c if "token" not in c.lower() else "***" for c in cmd]
+    print(f"[convert] 运行: {' '.join(shown)}", file=sys.stderr)
+    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if proc.returncode != 0:
         return {
             "ok": False,
@@ -151,6 +154,9 @@ def main() -> int:
     ap.add_argument("--timeout", type=int, default=300, help="超时秒数（默认 300）")
     ap.add_argument("--bin", default="", help="mineru-open-api 可执行文件路径（默认自动查找）")
     args = ap.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
     try:
         bin_path = args.bin or _default_bin()
