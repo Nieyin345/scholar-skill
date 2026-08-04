@@ -114,7 +114,29 @@ def convert(pdf: Path, out_dir: Path, mode: str, language: str, timeout: int, bi
 
     shown = [c if "token" not in c.lower() else "***" for c in cmd]
     print(f"[convert] 运行: {' '.join(shown)}", file=sys.stderr)
-    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    # 硬超时兜底：CLI 的 --timeout 未必覆盖上传/轮询挂死（如到阿里云 OSS
+    # 上传端点网络超时），外层必须加一道保险，超时后杀掉进程并返回可重试错误。
+    hard_timeout = timeout + 120
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=hard_timeout,
+        )
+    except subprocess.TimeoutExpired:
+        print(f"[convert] 转换超时（>{hard_timeout}s），已终止进程: {pdf}", file=sys.stderr)
+        return {
+            "ok": False,
+            "pdf": str(pdf),
+            "error": (
+                f"转换超时（超过 {hard_timeout}s）：MinerU CLI 无响应。"
+                "常见原因：PDF 过大或网络到 MinerU 云端不稳定（上传/轮询挂起）。"
+                "请重试一次；大文件可改用 --mode flash（限 10MB/20 页）或检查网络。"
+            ),
+        }
     if proc.returncode != 0:
         return {
             "ok": False,
@@ -151,7 +173,7 @@ def main() -> int:
         help="flash=免认证快速提取（默认）；extract=精提取（需 token）",
     )
     ap.add_argument("--language", default="en", help="文档语言，默认 en")
-    ap.add_argument("--timeout", type=int, default=300, help="超时秒数（默认 300）")
+    ap.add_argument("--timeout", type=int, default=300, help="CLI 内部超时秒数（默认 300）；外层硬超时为其 +120s，超时自动终止并报错")
     ap.add_argument("--bin", default="", help="mineru-open-api 可执行文件路径（默认自动查找）")
     args = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
