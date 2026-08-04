@@ -111,6 +111,28 @@ def ensure_bin(bin_path: str) -> str:
     )
 
 
+def _attach_pdf_link(md_path, pdf_path, source):
+    """在转换产物 md 顶部插入「原文 PDF」链接（Obsidian wikilink；PDF 与 md 同目录）。
+
+    pdf_path 为本地 PDF 时用 wikilink [[文件名.pdf]]（Obsidian 内可点击跳转）；
+    source 为 http(s) URL 时放 Markdown 链接（服务器端抓取，无本地文件）。
+    幂等：md 顶部已含「原文 PDF」标记则跳过，避免重复插入。
+    """
+    target = Path(md_path)
+    if not target.exists():
+        return
+    text = target.read_text(encoding="utf-8", errors="replace")
+    if "原文 PDF" in text[:500]:
+        return
+    if pdf_path is not None and Path(pdf_path).exists():
+        block = "> [!note] 原文 PDF：[[{}]]\n\n---\n\n".format(Path(pdf_path).name)
+    elif str(source).startswith(("http://", "https://")):
+        block = "> [!note] 原文 PDF（URL）：[{}]({})\n\n---\n\n".format(source, source)
+    else:
+        return
+    target.write_text(block + text.lstrip("\ufeff"), encoding="utf-8")
+
+
 # ---------------------------------------------------------------------------
 # 内置 API 通道（长超时上传，绕开官方 CLI 的 60s 单请求硬超时）
 # ---------------------------------------------------------------------------
@@ -397,6 +419,7 @@ def convert(pdf: str, out_dir: Path, mode: str, language: str, timeout: int, bin
                 md = api_extract_convert(pdf, out_dir, language, upload_timeout, token, model, ocr, pages, md_name)
             else:
                 md = api_flash_convert(pdf, out_dir, language, upload_timeout, md_name)
+            _attach_pdf_link(md, None, pdf)
             return {"ok": True, "pdf": pdf, "md": md, "mode": mode, "via": "api-url"}
         except Exception as e:  # noqa: BLE001
             return {"ok": False, "pdf": pdf, "error": str(e)}
@@ -408,10 +431,14 @@ def convert(pdf: str, out_dir: Path, mode: str, language: str, timeout: int, bin
 
     if pdf_path.stat().st_size > CLI_UPLOAD_CEILING:
         print("[convert] 文件较大，直接使用内置长超时上传通道（绕开官方 CLI 60s 硬超时）...", file=sys.stderr)
-        return _convert_via_api(pdf_path, out_dir, mode, language, upload_timeout, model, ocr, pages, md_name)
+        result = _convert_via_api(pdf_path, out_dir, mode, language, upload_timeout, model, ocr, pages, md_name)
+        if result.get("ok"):
+            _attach_pdf_link(result["md"], pdf_path, pdf)
+        return result
 
     result = _convert_via_cli(pdf_path, out_dir, mode, language, timeout, bin_path, model, ocr, pages, md_name)
     if result.get("ok"):
+        _attach_pdf_link(result["md"], pdf_path, pdf)
         return result
     err = (result.get("error") or "").lower()
     if any(k in err for k in ("context deadline exceeded", "client.timeout", "tls handshake timeout", "upload")):
