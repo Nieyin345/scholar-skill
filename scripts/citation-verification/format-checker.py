@@ -17,6 +17,13 @@ BibTeX and LaTeX Format Checker
 
 import argparse
 import sys
+# Windows GBK 控制台打印 emoji/符号会 UnicodeEncodeError：强制 UTF-8 输出
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 import re
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional

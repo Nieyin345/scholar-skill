@@ -16,6 +16,13 @@ Citation Verification Script
 
 import argparse
 import sys
+# Windows GBK 控制台打印 emoji/符号会 UnicodeEncodeError：强制 UTF-8 输出
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -23,14 +30,14 @@ from dataclasses import dataclass, asdict
 import re
 from difflib import SequenceMatcher
 
-# 尝试导入 bibtexparser
+# 尝试导入 bibtexparser（可选：缺失时用内置轻量正则解析降级）
 try:
     import bibtexparser
     from bibtexparser.bparser import BibTexParser
+    HAS_BIBTEXPARSER = True
 except ImportError:
-    print("错误: 需要安装 bibtexparser")
-    print("运行: pip install bibtexparser")
-    sys.exit(1)
+    HAS_BIBTEXPARSER = False
+    print("警告: bibtexparser 未安装,将使用内置轻量解析器（建议 pip install bibtexparser 获得完整解析）")
 
 # 尝试导入 API 客户端库
 try:
@@ -125,13 +132,48 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def _parse_bibtex_simple(file_path: str) -> List[Dict]:
+    """bibtexparser 缺失时的轻量正则解析（@type{key, field = {value}, ...}）。
+
+    不处理嵌套括号/宏展开，仅供降级使用；安装 bibtexparser 后自动用完整解析。
+    """
+    with open(file_path, 'r', encoding='utf-8') as f:
+        text = f.read()
+    entries: List[Dict] = []
+    for m in re.finditer(r'@(\w+)\s*\{\s*([^,\s]+)\s*,', text):
+        etype, key = m.group(1).lower(), m.group(2)
+        if etype in ('string', 'comment', 'preamble'):
+            continue
+        start, depth, i = m.end(), 1, m.end()
+        while i < len(text) and depth > 0:
+            if text[i] == '{':
+                depth += 1
+            elif text[i] == '}':
+                depth -= 1
+            i += 1
+        body = text[start:i]
+        entry: Dict = {'ID': key, 'ENTRYTYPE': etype}
+        for fm in re.finditer(r'(\w+)\s*=\s*(\{[^{}]*\}|\"[^\"]*\")', body):
+            field, val = fm.group(1).lower(), fm.group(2)
+            entry[field] = val[1:-1].strip()
+        entries.append(entry)
+    return entries
+
+
 def load_bibtex(file_path: str) -> List[Dict]:
     """加载 BibTeX 文件"""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            parser = BibTexParser(common_strings=True)
-            bib_database = bibtexparser.load(f, parser)
-            return bib_database.entries
+        if HAS_BIBTEXPARSER:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                parser = BibTexParser(common_strings=True)
+                bib_database = bibtexparser.load(f, parser)
+                return bib_database.entries
+        entries = _parse_bibtex_simple(file_path)
+        if not entries:
+            print(f"错误: 无法从 BibTeX 文件解析出任何条目: {file_path}")
+            print("提示: pip install bibtexparser 后可获得完整解析（含宏展开/嵌套括号）")
+            sys.exit(1)
+        return entries
     except FileNotFoundError:
         print(f"错误: 文件不存在: {file_path}")
         sys.exit(1)
@@ -525,6 +567,7 @@ def print_summary(results: List[VerificationResult], verbose: bool = False):
     verified = sum(1 for r in results if r.status == 'verified')
     partial = sum(1 for r in results if r.status == 'partial_match')
     low = sum(1 for r in results if r.status == 'low_match')
+    format_checked = sum(1 for r in results if r.status == 'format_checked')
     failed = sum(1 for r in results if r.status in ['failed', 'not_found'])
 
     print("\n" + "="*60)
@@ -534,6 +577,7 @@ def print_summary(results: List[VerificationResult], verbose: bool = False):
     print(f"✅ 验证通过: {verified} ({verified/total*100:.1f}%)")
     print(f"⚠️  部分匹配: {partial} ({partial/total*100:.1f}%)")
     print(f"❌ 匹配度低: {low} ({low/total*100:.1f}%)")
+    print(f"📄 格式检查: {format_checked} ({format_checked/total*100:.1f}%)")
     print(f"❌ 验证失败: {failed} ({failed/total*100:.1f}%)")
     print("="*60)
 
@@ -556,6 +600,7 @@ def generate_markdown_report(results: List[VerificationResult], output_file: str
     verified = sum(1 for r in results if r.status == 'verified')
     partial = sum(1 for r in results if r.status == 'partial_match')
     low = sum(1 for r in results if r.status == 'low_match')
+    format_checked = sum(1 for r in results if r.status == 'format_checked')
     failed = sum(1 for r in results if r.status in ['failed', 'not_found'])
 
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -567,6 +612,7 @@ def generate_markdown_report(results: List[VerificationResult], output_file: str
         f.write(f"- **✅ 验证通过**: {verified} ({verified/total*100:.1f}%)\n")
         f.write(f"- **⚠️ 部分匹配**: {partial} ({partial/total*100:.1f}%)\n")
         f.write(f"- **❌ 匹配度低**: {low} ({low/total*100:.1f}%)\n")
+        f.write(f"- **📄 格式检查**: {format_checked} ({format_checked/total*100:.1f}%)\n")
         f.write(f"- **❌ 验证失败**: {failed} ({failed/total*100:.1f}%)\n\n")
 
         # 详细结果
@@ -659,6 +705,8 @@ def main():
             print("✅")
         elif result.status == 'partial_match':
             print("⚠️")
+        elif result.status == 'format_checked':
+            print("[格式OK]")
         else:
             print("❌")
 
