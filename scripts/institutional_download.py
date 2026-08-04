@@ -36,11 +36,14 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import os
+import subprocess
 import re
 import sys
 import time
 import urllib.request
 from pathlib import Path
+from _cloak_env import CLOAK_HINT, resolve_cloak_python
 
 CLI_VERSION = "0.1.0"
 _SKILL_DIR = Path(__file__).resolve().parent.parent
@@ -179,11 +182,16 @@ def main() -> int:
         )
         return 4
 
-    try:
-        from cloakbrowser import launch
-    except ImportError as e:
-        print(f"cloakbrowser 导入失败: {e}\n请先安装: pip install cloakbrowser", file=sys.stderr)
+    # ---- CloakBrowser 依赖：自动选择装有 cloakbrowser 的解释器 ----
+    py, tried = resolve_cloak_python()
+    if py is None:
+        print(f"[inst-dl] 未找到能 import cloakbrowser 的 Python 解释器。已探测: {', '.join(tried) or '无'}", file=sys.stderr)
+        print(CLOAK_HINT, file=sys.stderr)
         return 4
+    if os.path.normcase(os.path.abspath(py)) != os.path.normcase(os.path.abspath(sys.executable)):
+        print(f"[inst-dl] 当前解释器缺少 cloakbrowser，自动改用: {py}", file=sys.stderr)
+        return subprocess.call([py, str(Path(__file__).resolve())] + sys.argv[1:])
+    from cloakbrowser import launch
 
     # ---- resolve Crossref ----
     if args.dois:
@@ -238,6 +246,8 @@ def main() -> int:
                     ct = (resp.headers.get("content-type") or "")
                     entry["error"] = f"http_{status}_not_pdf (ct={ct})"
                     print(f"[inst-dl] [{idx}/{len(items)}] {doi} -> {u} 返回 {status}，非 PDF", file=sys.stderr)
+                    if status == 200 and "html" in ct.lower():
+                        print(f"[inst-dl]   提示: 返回 HTML = 登录页/无权限页（机构可能无该刊订阅）；确无权限请直接标记失败，勿反复重试。", file=sys.stderr)
                 except Exception as e:
                     entry["error"] = f"request_error: {type(e).__name__}: {str(e)[:160]}"
                     print(f"[inst-dl] [{idx}/{len(items)}] {doi} -> {u} 请求失败: {entry['error']}", file=sys.stderr)

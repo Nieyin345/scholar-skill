@@ -29,8 +29,11 @@
 from __future__ import annotations
 
 import argparse
+import os
+import subprocess
 import sys
 from pathlib import Path
+from _cloak_env import CLOAK_HINT, resolve_cloak_python
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_JAR = SKILL_DIR / ".scholar_institutional" / "cookies.txt"
@@ -80,12 +83,16 @@ def main() -> int:
         return 2
     out = Path(args.output)
 
-    try:
-        from cloakbrowser import launch
-    except ImportError as e:
-        print(f"cloakbrowser 导入失败: {e}", file=sys.stderr)
-        print("请先安装: pip install cloakbrowser", file=sys.stderr)
+    # ---- CloakBrowser 依赖：自动选择装有 cloakbrowser 的解释器 ----
+    py, tried = resolve_cloak_python()
+    if py is None:
+        print(f"[login] 未找到能 import cloakbrowser 的 Python 解释器。已探测: {', '.join(tried) or '无'}", file=sys.stderr)
+        print(CLOAK_HINT, file=sys.stderr)
         return 1
+    if os.path.normcase(os.path.abspath(py)) != os.path.normcase(os.path.abspath(sys.executable)):
+        print(f"[login] 当前解释器缺少 cloakbrowser，自动改用: {py}", file=sys.stderr)
+        return subprocess.call([py, str(Path(__file__).resolve())] + sys.argv[1:])
+    from cloakbrowser import launch
 
     browser = None
     try:

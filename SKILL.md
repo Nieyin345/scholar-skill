@@ -140,6 +140,17 @@ python scripts/institutional_login.py <登录URL> [额外域名...]
   - 无 EZproxy 的学校（如 Politecnico di Milano）：用出版商「Access through your institution」入口——打开目标 IEEE 文章页 → Sign In → Institutional Sign In → 搜索选择学校（如 Politecnico di Milano）→ 学校登录页完成认证；额外域名填 `ieeexplore.ieee.org`；
 - cookie 按域名隔离，**每个出版商登录一次**（IEEE 一次登录可下该会话内所有文章；Springer/IOP/de Gruyter 等需各自登录一次，同域名不重复）；会话通常几小时有效，MFA 属正常，过期重跑即可。
 
+### 依赖（浏览器下载必需：cloakbrowser）
+
+`institutional_login.py` / `institutional_download.py` 需要 `cloakbrowser` 包（stealth Chromium）。该包可能只装在某个 Python 解释器里（本机实测在 `C:\\Python313\\python.exe`，默认 anaconda 里没有）；脚本会自动探测可用解释器（优先 `CLOAKBROWSER_PYTHON` 环境变量 → 常见路径 `C:\\Python313\\python.exe` 等 → `py -0p` 列出的已装 Python → PATH → 当前解释器），探测到即自动切换，无需手动指定。若确实未安装，会打印明确指引（含安装命令与 `CLOAKBROWSER_PYTHON` 设置方法）。
+
+```powershell
+# 指定已装 cloakbrowser 的解释器（推荐；脚本自动使用，仍报"缺少"时设这个）
+$env:CLOAKBROWSER_PYTHON = 'C:\Python313\python.exe'
+# 在目标解释器上安装一次
+& 'C:\Python313\python.exe' -m pip install -U cloakbrowser
+```
+
 ### 自动判定 + 两级下载（流程一付费墙主解）
 
 遇到付费墙下载失败时，先检查 cookie jar 是否存在（`<skill_dir>/.scholar_institutional/cookies.txt`）：
@@ -159,6 +170,7 @@ python scripts/institutional_login.py <登录URL> [额外域名...]
 - **MDPI 403**：`www.mdpi.com` 对部分 IP 全 UA 封禁 → 已内置 `pub.mdpi-res.com` CDN 兜底（任意模式），一般直接成功；
 - **arXiv/PMC 型**：历史 `NoneType` 崩溃已修复 → 直接重试即可；
 - **Sci-Hub 命中但下载 403/not_a_pdf**：镜像 CDN 不稳定 → 属重试类，换个时段或镜像再试；
+- **HTTP 200 但返回 HTML（`http_200_not_pdf`）**：登录成功但机构无该刊订阅（De Gruyter 跳 `unauthorizedDownload`；IOP 常无权限）→ 属客观无权限，**直接标记失败**并替换 OA 文献，勿反复重试/重登录；
 - **超大 PDF**（>50MB，如 17MB 云端转换超时属转换问题）：下载/转换选网络稳定时段重试。
 
 ## 共享脚本索引
@@ -167,8 +179,8 @@ python scripts/institutional_login.py <登录URL> [额外域名...]
 |------|------|
 | `scripts/fetch.py` + `scripts/cloak_pdf.py` | 文献 PDF 下载（paper-fetch，多源解析 + %PDF 校验；含 OpenAIRE 源、MDPI CDN 兜底、机构 cookie jar/EZproxy） |
 | `scripts/institutional_login.py` | 机构认证登录向导（EZproxy/SSO，导出会话 cookie jar，不存密码） |
-| `scripts/institutional_download.py` | 机构认证浏览器下载（复用 cookie jar 过 WAF 下载 IEEE 等付费墙 PDF，headless 默认） |
-| `scripts/convert_pdf_to_md.py` | PDF→MD 转换（MinerU Open API CLI 封装） |
+| `scripts/institutional_download.py` | 机构认证浏览器下载（复用 cookie jar 过 WAF 下载 IEEE 等付费墙 PDF，headless 默认；自动探测 cloakbrowser 解释器） |
+| `scripts/convert_pdf_to_md.py` | PDF→MD 转换（MinerU CLI；内置长超时上传兜底，支持 URL 模式/大文件，extract 输出 md+images） |
 | `scripts/mineru/install.ps1` | MinerU 官方安装器（随 Skill 分发） |
 | `scripts/manage_keys.py` | 密钥管理（set/get/list/delete） |
 | `scripts/anysearch/` | 实时搜索 CLI（anysearch） |

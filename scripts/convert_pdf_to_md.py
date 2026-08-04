@@ -1,32 +1,45 @@
 #!/usr/bin/env python3
-"""PDF -> Markdown 转换（MinerU Open API CLI 封装）。
+"""PDF -> Markdown 转换（MinerU Open API CLI + 内置长超时上传兜底）。
 
-使用 MinerU Open API CLI 将 PDF 转换为 Markdown。
-CLI 安装方式（跟随本 skill 一起下载）：
-  - 内置安装脚本：scripts/mineru/install.ps1（Windows 官方安装器）
-  - 或在线安装：irm https://cdn-mineru.openxlab.org.cn/open-api-cli/install.ps1 | iex
+使用 MinerU Open API 将 PDF 转换为 Markdown。优先使用官方 CLI
+（mineru-open-api）；当文件较大或官方 CLI 上传超时（官方 CLI 写死
+http.Client 单请求 60s 超时，而到阿里云上海 OSS 的上传常仅 40-50KB/s，
+3MB 以上必然超时）时，自动改用内置 API 通道：上传用 curl 长超时
+（默认 900s），并支持 URL 模式（服务器端抓取，完全不经本机上传）。
 
 两种转换模式：
-  - flash （默认，免认证）：mineru-open-api flash-extract，快速 Markdown 提取；
-    限制：文件 <= 10MB 且 <= 20 页；Markdown only（图片/表格/公式为占位）。
-  - extract（需认证）：mineru-open-api extract，精提取（布局保留 + 全部资产），
-    需先执行 mineru-open-api auth 配置 API Token。
+  - flash （默认，免认证）：mineru-open-api flash-extract / agent API，
+    快速 Markdown 提取；限制：文件 <= 10MB 且 <= 20 页；Markdown only。
+  - extract（需认证）：精提取（布局保留 + 图片等资产），需 MINERU_TOKEN。
 
 用法：
-  python convert_pdf_to_md.py <pdf路径> --out <输出文件夹> [--mode flash|extract] [--language en] [--timeout 300]
+  python convert_pdf_to_md.py <pdf路径|URL> --out <输出文件夹> [--mode flash|extract]
+       [--language en] [--timeout 300] [--upload-timeout 900] [--bin <cli路径>]
 """
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 import shutil
 import subprocess
 import sys
+import time
+import urllib.request
+import zipfile
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 BUNDLED_INSTALLER = SKILL_DIR / "scripts" / "mineru" / "install.ps1"
+
+FLASH_BASE = "https://mineru.net/api/v1/agent"
+V4_BASE = "https://mineru.net/api/v4"
+
+# 官方 CLI 的 http.Client 单请求超时写死为 60s（DefaultRequestTimeout）；
+# 慢速网络下到阿里云上海 OSS 的上传约 40-50KB/s，3MB 以上必然超时。
+# 超过该阈值的文件直接走内置 API 通道，不再浪费一次必然失败的 CLI 尝试。
+CLI_UPLOAD_CEILING = 3 * 1024 * 1024
 
 
 def _default_bin() -> str:
@@ -94,11 +107,210 @@ def ensure_bin(bin_path: str) -> str:
     )
 
 
-def convert(pdf: Path, out_dir: Path, mode: str, language: str, timeout: int, bin_path: str) -> dict:
-    if not pdf.exists():
-        raise FileNotFoundError(f"PDF 不存在: {pdf}")
-    out_dir.mkdir(parents=True, exist_ok=True)
+# ---------------------------------------------------------------------------
+# 内置 API 通道（长超时上传，绕开官方 CLI 的 60s 单请求硬超时）
+# ---------------------------------------------------------------------------
 
+def _is_url(s: str) -> bool:
+    return s.startswith("http://") or s.startswith("https://")
+
+
+def _find_curl() -> str:
+    for cand in (shutil.which("curl"), shutil.which("curl.exe"), r"C:\Windows\System32\curl.exe"):
+        if cand and Path(cand).exists():
+            return cand
+    raise RuntimeError("未找到 curl.exe：长超时上传需要 curl，请安装或改用 --bin 指定官方 CLI")
+
+
+def _json_req(method: str, url: str, headers=None, body=None, timeout: int = 60):
+    req = urllib.request.Request(url, data=body, method=method)
+    for k, v in (headers or {}).items():
+        req.add_header(k, v)
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        raw = resp.read().decode("utf-8", errors="replace")
+    return json.loads(raw)
+
+
+def _raw_get(url: str, timeout: int = 180) -> bytes:
+    with urllib.request.urlopen(url, timeout=timeout) as resp:
+        return resp.read()
+
+
+def _put_via_curl(pdf: Path, url: str, upload_timeout: int) -> bool:
+    """与 Zotero 插件同款上传：curl -s -f -T <file> --max-time <N>，无 Content-Type。"""
+    curl = _find_curl()
+    cmd = [curl, "-s", "-f", "-T", str(pdf), "--max-time", str(upload_timeout), "--url", url]
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=upload_timeout + 30,
+        )
+        return proc.returncode == 0
+    except subprocess.TimeoutExpired:
+        return False
+
+
+def _upload_with_retry(pdf: Path, file_url: str, upload_timeout: int) -> None:
+    print(f"[convert] 长超时上传（单次最多 {upload_timeout}s）: {pdf.name}", file=sys.stderr)
+    for attempt in range(1, 4):
+        if _put_via_curl(pdf, file_url, upload_timeout):
+            return
+        print(f"[convert] 上传失败（第 {attempt} 次），5 秒后重试...", file=sys.stderr)
+        time.sleep(5)
+    raise RuntimeError("上传到 MinerU OSS 失败（curl 多次尝试未成功，可能网络被限速/阻断）")
+
+
+def _poll(poll_fn, timeout: int, interval: int = 5) -> dict:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        r = poll_fn()
+        state = r.get("state")
+        if state == "done":
+            return r
+        if state == "failed":
+            raise RuntimeError("MinerU 任务失败: " + str(r.get("err_msg") or r.get("err_code") or "未知错误"))
+        time.sleep(interval)
+    raise RuntimeError(f"MinerU 任务轮询超时（>{timeout}s）")
+
+
+def api_flash_convert(source: str, out_dir: Path, language: str, upload_timeout: int) -> str:
+    """flash（agent）API：URL 模式服务器端抓取 / 本地文件长超时上传。返回 .md 路径。"""
+    if _is_url(source):
+        payload = {"url": source, "language": language}
+        data = _json_req(
+            "POST", FLASH_BASE + "/parse/url",
+            headers={"Content-Type": "application/json"},
+            body=json.dumps(payload).encode("utf-8"),
+        )
+        task_id = data["data"]["task_id"]
+        stem = Path(urllib.request.urlparse(source).path).stem or "paper"
+    else:
+        pdf = Path(source)
+        payload = {"file_name": pdf.name, "language": language}
+        data = _json_req(
+            "POST", FLASH_BASE + "/parse/file",
+            headers={"Content-Type": "application/json"},
+            body=json.dumps(payload).encode("utf-8"),
+        )
+        d = data["data"]
+        task_id = d["task_id"]
+        file_url = d["file_url"]
+        stem = pdf.stem
+        _upload_with_retry(pdf, file_url, upload_timeout)
+
+    def poll():
+        d = _json_req("GET", FLASH_BASE + "/parse/" + task_id)["data"]
+        return {
+            "state": d.get("state"),
+            "markdown_url": d.get("markdown_url"),
+            "err_msg": d.get("err_msg"),
+            "err_code": d.get("err_code"),
+        }
+
+    r = _poll(poll, upload_timeout + 300)
+    md_url = r.get("markdown_url")
+    if not md_url:
+        raise RuntimeError("任务完成但未返回 markdown_url")
+    md_text = _raw_get(md_url, timeout=180).decode("utf-8", errors="replace")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    target = out_dir / (stem + ".md")
+    target.write_text(md_text, encoding="utf-8")
+    return str(target)
+
+
+def api_extract_convert(source: str, out_dir: Path, language: str, upload_timeout: int, token: str) -> str:
+    """extract（v4）API：精提取，返回 .md 路径，图片写入 out_dir/images/。"""
+    auth = {"Authorization": "Bearer " + token}
+    if _is_url(source):
+        payload = {"model_version": "vlm", "language": language, "files": [{"url": source}]}
+        data = _json_req(
+            "POST", V4_BASE + "/extract/task/batch",
+            headers={**auth, "Content-Type": "application/json"},
+            body=json.dumps(payload).encode("utf-8"),
+        )
+        batch_id = data["data"]["batch_id"]
+        stem = Path(urllib.request.urlparse(source).path).stem or "paper"
+    else:
+        pdf = Path(source)
+        payload = {
+            "model_version": "vlm",
+            "language": language,
+            "enable_formula": True,
+            "enable_table": True,
+            "files": [{"name": pdf.name, "is_ocr": False}],
+        }
+        data = _json_req(
+            "POST", V4_BASE + "/file-urls/batch",
+            headers={**auth, "Content-Type": "application/json"},
+            body=json.dumps(payload).encode("utf-8"),
+        )
+        d = data["data"]
+        batch_id = d["batch_id"]
+        file_url = d["file_urls"][0]
+        stem = pdf.stem
+        _upload_with_retry(pdf, file_url, upload_timeout)
+
+    def poll():
+        d = _json_req("GET", V4_BASE + "/extract-results/batch/" + batch_id, headers=auth)["data"]
+        er = (d.get("extract_result") or [{}])[0]
+        return {
+            "state": er.get("state"),
+            "zip_url": er.get("full_zip_url"),
+            "err_msg": er.get("err_msg"),
+            "err_code": er.get("err_code"),
+        }
+
+    r = _poll(poll, upload_timeout + 300)
+    zip_url = r.get("zip_url")
+    if not zip_url:
+        raise RuntimeError("任务完成但未返回 full_zip_url")
+    print("[convert] 下载解析结果 zip...", file=sys.stderr)
+    zip_bytes = _raw_get(zip_url, timeout=300)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    target = out_dir / (stem + ".md")
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
+        names = z.namelist()
+        md_name = next((n for n in names if n.endswith("full.md")), None)
+        if md_name is None:
+            md_name = next((n for n in names if n.endswith(".md") and not n.startswith("_")), None)
+        if md_name is None:
+            raise RuntimeError("结果 zip 中未找到 full.md")
+        target.write_bytes(z.read(md_name))
+        img_dir = out_dir / "images"
+        img_dir.mkdir(parents=True, exist_ok=True)
+        for n in names:
+            if n.startswith("images/") and not n.endswith("/"):
+                (img_dir / Path(n).name).write_bytes(z.read(n))
+    return str(target)
+
+
+def _convert_via_api(pdf_path: Path, out_dir: Path, mode: str, language: str, upload_timeout: int) -> dict:
+    try:
+        if mode == "extract":
+            token = os.environ.get("MINERU_TOKEN", "").strip() or _env_value("MINERU_TOKEN")
+            if not token:
+                return {
+                    "ok": False,
+                    "pdf": str(pdf_path),
+                    "error": "extract 模式需要 MinerU API Token（python scripts/manage_keys.py set MINERU_TOKEN <token>）",
+                }
+            md = api_extract_convert(str(pdf_path), out_dir, language, upload_timeout, token)
+        else:
+            md = api_flash_convert(str(pdf_path), out_dir, language, upload_timeout)
+        return {"ok": True, "pdf": str(pdf_path), "md": md, "mode": mode, "via": "api"}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "pdf": str(pdf_path), "error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# 官方 CLI 路径（小文件优先）
+# ---------------------------------------------------------------------------
+
+def _convert_via_cli(pdf: Path, out_dir: Path, mode: str, language: str, timeout: int, bin_path: str) -> dict:
     token = os.environ.get("MINERU_TOKEN", "").strip() or _env_value("MINERU_TOKEN")
     cmd = [bin_path]
     if mode == "extract":
@@ -114,8 +326,6 @@ def convert(pdf: Path, out_dir: Path, mode: str, language: str, timeout: int, bi
 
     shown = [c if "token" not in c.lower() else "***" for c in cmd]
     print(f"[convert] 运行: {' '.join(shown)}", file=sys.stderr)
-    # 硬超时兜底：CLI 的 --timeout 未必覆盖上传/轮询挂死（如到阿里云 OSS
-    # 上传端点网络超时），外层必须加一道保险，超时后杀掉进程并返回可重试错误。
     hard_timeout = timeout + 120
     try:
         proc = subprocess.run(
@@ -134,7 +344,6 @@ def convert(pdf: Path, out_dir: Path, mode: str, language: str, timeout: int, bi
             "error": (
                 f"转换超时（超过 {hard_timeout}s）：MinerU CLI 无响应。"
                 "常见原因：PDF 过大或网络到 MinerU 云端不稳定（上传/轮询挂起）。"
-                "请重试一次；大文件可改用 --mode flash（限 10MB/20 页）或检查网络。"
             ),
         }
     if proc.returncode != 0:
@@ -144,7 +353,6 @@ def convert(pdf: Path, out_dir: Path, mode: str, language: str, timeout: int, bi
             "error": proc.stderr.strip() or proc.stdout.strip() or f"exit code {proc.returncode}",
         }
 
-    # 定位生成的 markdown，并统一命名为 <pdf文件名>.md
     produced = list(out_dir.glob("*.md"))
     if not produced:
         return {
@@ -156,24 +364,53 @@ def convert(pdf: Path, out_dir: Path, mode: str, language: str, timeout: int, bi
     target = out_dir / (pdf.stem + ".md")
     if produced[0].resolve() != target.resolve():
         shutil.move(str(produced[0]), str(target))
-    return {
-        "ok": True,
-        "pdf": str(pdf),
-        "md": str(target),
-        "mode": mode,
-    }
+    return {"ok": True, "pdf": str(pdf), "md": str(target), "mode": mode, "via": "cli"}
+
+
+def convert(pdf: str, out_dir: Path, mode: str, language: str, timeout: int, bin_path: str, upload_timeout: int) -> dict:
+    if _is_url(pdf):
+        try:
+            if mode == "extract":
+                token = os.environ.get("MINERU_TOKEN", "").strip() or _env_value("MINERU_TOKEN")
+                if not token:
+                    return {"ok": False, "pdf": pdf, "error": "extract 模式需要 MinerU API Token"}
+                md = api_extract_convert(pdf, out_dir, language, upload_timeout, token)
+            else:
+                md = api_flash_convert(pdf, out_dir, language, upload_timeout)
+            return {"ok": True, "pdf": pdf, "md": md, "mode": mode, "via": "api-url"}
+        except Exception as e:  # noqa: BLE001
+            return {"ok": False, "pdf": pdf, "error": str(e)}
+
+    pdf_path = Path(pdf)
+    if not pdf_path.exists():
+        raise FileNotFoundError(f"PDF 不存在: {pdf}")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    if pdf_path.stat().st_size > CLI_UPLOAD_CEILING:
+        print("[convert] 文件较大，直接使用内置长超时上传通道（绕开官方 CLI 60s 硬超时）...", file=sys.stderr)
+        return _convert_via_api(pdf_path, out_dir, mode, language, upload_timeout)
+
+    result = _convert_via_cli(pdf_path, out_dir, mode, language, timeout, bin_path)
+    if result.get("ok"):
+        return result
+    err = (result.get("error") or "").lower()
+    if any(k in err for k in ("context deadline exceeded", "client.timeout", "tls handshake timeout", "upload")):
+        print("[convert] 官方 CLI 上传超时，改用内置长超时上传通道...", file=sys.stderr)
+        return _convert_via_api(pdf_path, out_dir, mode, language, upload_timeout)
+    return result
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="PDF -> Markdown（MinerU Open API CLI 封装）")
-    ap.add_argument("pdf", help="PDF 文件路径")
+    ap = argparse.ArgumentParser(description="PDF -> Markdown（MinerU，官方 CLI + 长超时上传兜底）")
+    ap.add_argument("pdf", help="PDF 文件路径或 http(s) URL（URL 走服务器端抓取）")
     ap.add_argument("--out", default=".", help="输出文件夹（论文文件夹）")
     ap.add_argument(
         "--mode", choices=["flash", "extract"], default="flash",
-        help="flash=免认证快速提取（默认）；extract=精提取（需 token）",
+        help="flash=免认证快速提取（默认，限 10MB/20 页）；extract=精提取（需 token）",
     )
     ap.add_argument("--language", default="en", help="文档语言，默认 en")
-    ap.add_argument("--timeout", type=int, default=300, help="CLI 内部超时秒数（默认 300）；外层硬超时为其 +120s，超时自动终止并报错")
+    ap.add_argument("--timeout", type=int, default=300, help="CLI 内部超时秒数（默认 300）；外层硬超时为其 +120s")
+    ap.add_argument("--upload-timeout", type=int, default=900, help="内置长超时上传单次上限秒数（默认 900，重试 3 次）")
     ap.add_argument("--bin", default="", help="mineru-open-api 可执行文件路径（默认自动查找）")
     args = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
@@ -181,9 +418,14 @@ def main() -> int:
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
     try:
-        bin_path = args.bin or _default_bin()
-        bin_path = ensure_bin(bin_path)
-        result = convert(Path(args.pdf), Path(args.out), args.mode, args.language, args.timeout, bin_path)
+        pdf = args.pdf
+        out_dir = Path(args.out)
+        need_cli = (not _is_url(pdf)) and Path(pdf).exists() and Path(pdf).stat().st_size <= CLI_UPLOAD_CEILING
+        bin_path = ""
+        if need_cli:
+            bin_path = args.bin or _default_bin()
+            bin_path = ensure_bin(bin_path)
+        result = convert(pdf, out_dir, args.mode, args.language, args.timeout, bin_path, args.upload_timeout)
     except Exception as e:  # noqa: BLE001
         result = {"ok": False, "pdf": args.pdf, "error": str(e)}
 
