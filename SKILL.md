@@ -215,6 +215,7 @@ $env:CLOAKBROWSER_PYTHON = 'C:\Python313\python.exe'
 | `references/project-navigation-template.md` | 项目导航文档模板（`00_项目导航.md`：文件结构 / 文档索引 / 文献库索引 / 当前状态 / 更新记录） |
 | `references/vault-navigation-template.md` | 笔记库导航模板（`00-导航.md`：项目笔记库结构（当前项目 `笔记/`）/ 命名规则 / 论文笔记注册表 / 当前状态 / 维护铁律） |
 | `references/research-ideation/` | 研究方向确认参考（scholar 内嵌：5W1H / gap 分析 / 研究问题 / 研究契约 / 方法选择 / 检索策略 / 研究计划 / Zotero 集成） |
+| `references/obsidian-uri.md` | Obsidian 命令行 / URI 控制参考（Advanced URI：打开定位 / 触发插件命令 / 写属性；obsidian-cli 可选） |
 | `standards/` | 写作规范库（`通用写作规范.md` 跨任务底线 + 每个写作任务一份规范，随反馈持续更新；索引见 `standards/_INDEX.md`） |
 
 ## 工具索引（不在流程内，按需触发）
