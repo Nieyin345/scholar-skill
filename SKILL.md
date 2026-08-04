@@ -121,21 +121,41 @@ description: |
 - anysearch：触发时若无 `ANYSEARCH_API_KEY` 则询问用户，提供后保存；之后每次自动使用。用户没有 key 则匿名访问。
 - MinerU：`flash` 免认证；`extract` 需要 `MINERU_TOKEN`——转换脚本自动从 `.env` 读取并传 `--token`；缺失时提示用户保存后再跑。
 - paper-fetch：`UNPAYWALL_EMAIL` 缺失时询问用户；提供后保存，之后不再问。
-- 机构认证会话：可选的 `PAPER_FETCH_INSTITUTIONAL=1`（+ `PAPER_FETCH_EZPROXY`）由用户按需开启，不属首次触发必问项；配置详情见「机构认证下载」。
+- 机构认证会话：`PAPER_FETCH_INSTITUTIONAL=1`（+ `PAPER_FETCH_EZPROXY`）可选；cookie jar 存在时流程一自动走两级机构下载（见「机构认证下载」），不属首次触发必问项。
 - 密钥失效/更新：`delete` 删除后重新 `set`。
 
 ## 机构认证下载（付费墙文献）
 
-公开 OA 源（Unpaywall/S2/arXiv/PMC/OpenAlex/OpenAIRE/MDPI CDN）找不到的 2025+ 付费墙论文（IEEE、Springer、IOP、de Gruyter 等），只能靠机构订阅。scholar 支持两种机构认证方式，**不保存账号密码，只保存登录会话 cookie**（`<skill_dir>/.scholar_institutional/cookies.txt`，已被 `.gitignore` 排除）：
+公开 OA 源（Unpaywall/S2/arXiv/PMC/OpenAlex/OpenAIRE/MDPI CDN）找不到的 2025+ 付费墙论文（IEEE、Springer、IOP、de Gruyter 等），只能靠机构订阅。scholar 内置完整机构认证下载链路，**不保存账号密码，只保存登录会话 cookie**（`<skill_dir>/.scholar_institutional/cookies.txt`，已被 `.gitignore` 排除，`git pull` 更新不会覆盖）。
 
-1. **EZproxy（最常见，推荐）**：用户提供学校 EZproxy 入口（如 `https://ezproxy.<学校>.edu/login`，找图书馆「校外访问」链接），运行 `python scripts/institutional_login.py <登录URL>`，在弹出的浏览器里完成登录（含 MFA），回终端回车，会话 cookie 自动落盘；
-2. **机构 SSO（Shibboleth，无 EZproxy 时）**：把 IEEE/Springer 的「Access through your institution」登录链接作为 login-url 交给同一个向导，cookie 落盘后 `fetch.py` 直连 publisher 也能带权限；
-3. 下载前设置 `PAPER_FETCH_INSTITUTIONAL=1`（用 EZproxy 时再加 `PAPER_FETCH_EZPROXY=<域名>`）；`fetch.py` 自动加载 cookie jar，并把 IEEE/Springer/Elsevier 等 publisher 直连 URL 改写成 EZproxy 代理 URL；
-4. cookie 过期后重跑向导即可，不会影响已保存的 key。
+### 会话建立（一次性，登录向导）
+
+```bash
+python scripts/institutional_login.py <登录URL> [额外域名...]
+```
+
+- 弹出可见浏览器，用户完成机构登录（含 MFA），回终端回车，会话 cookie 自动落盘；
+- 入口 URL 选择：
+  - 学校有 EZproxy：`https://ezproxy.<学校>.edu/login`（图书馆「校外访问」链接）；
+  - 无 EZproxy 的学校（如 Politecnico di Milano）：用出版商「Access through your institution」入口——打开目标 IEEE 文章页 → Sign In → Institutional Sign In → 搜索选择学校（如 Politecnico di Milano）→ 学校登录页完成认证；额外域名填 `ieeexplore.ieee.org`；
+- cookie 按域名隔离，**每个出版商登录一次**（IEEE 一次登录可下该会话内所有文章；Springer/IOP/de Gruyter 等需各自登录一次，同域名不重复）；会话通常几小时有效，MFA 属正常，过期重跑即可。
+
+### 自动判定 + 两级下载（流程一付费墙主解）
+
+遇到付费墙下载失败时，先检查 cookie jar 是否存在（`<skill_dir>/.scholar_institutional/cookies.txt`）：
+
+1. **一级：urllib 直连**：`PAPER_FETCH_INSTITUTIONAL=1 python scripts/fetch.py <DOI>`——带 cookie 直连出版商；适合未做浏览器指纹校验的出版商；
+2. **二级：浏览器上下文下载（WAF 出版商必用）**：
+   ```bash
+   python scripts/institutional_download.py --dois <失败DOI清单.txt> --out <输出目录> [--headful]
+   ```
+   用 CloakBrowser 复用同一 cookie jar 发起请求，能通过 IEEE 的 AWS WAF（urllib 直连会被 418 拦截，即使 cookie 有效）；成功后立即触发 MD 转换；WAF 严格时加 `--headful`；
+3. **cookie 过期判定**：连续 `418` / 登录页 HTML / `403` → 重跑登录向导，不影响已保存的 key。
 
 ### 下载失败分级（报告时按此判断，避免无意义重试）
 
-- **纯付费墙**（2025-2026 新论文且无 OA）：IEEE/Springer/IOP/de Gruyter 等 `not_found`，重试无意义 → 报告「机构订阅可下」，提示用户开启机构认证（见上）或替换为 OA 文献；
+- **纯付费墙**（2025-2026 新论文且无 OA）：IEEE/Springer/IOP/de Gruyter 等 `not_found` → 先查 cookie jar：有 → 走上面两级下载；无 → 询问用户是否开通机构认证（登录向导）或替换为 OA 文献；
+- **HTTP 418（IEEE AWS WAF）**：cookie 有效但 urllib 被指纹拦截 → 用 `institutional_download.py`（浏览器模式）；仍 418 → 会话过期，重跑登录向导；
 - **MDPI 403**：`www.mdpi.com` 对部分 IP 全 UA 封禁 → 已内置 `pub.mdpi-res.com` CDN 兜底（任意模式），一般直接成功；
 - **arXiv/PMC 型**：历史 `NoneType` 崩溃已修复 → 直接重试即可；
 - **Sci-Hub 命中但下载 403/not_a_pdf**：镜像 CDN 不稳定 → 属重试类，换个时段或镜像再试；
@@ -147,6 +167,7 @@ description: |
 |------|------|
 | `scripts/fetch.py` + `scripts/cloak_pdf.py` | 文献 PDF 下载（paper-fetch，多源解析 + %PDF 校验；含 OpenAIRE 源、MDPI CDN 兜底、机构 cookie jar/EZproxy） |
 | `scripts/institutional_login.py` | 机构认证登录向导（EZproxy/SSO，导出会话 cookie jar，不存密码） |
+| `scripts/institutional_download.py` | 机构认证浏览器下载（复用 cookie jar 过 WAF 下载 IEEE 等付费墙 PDF，headless 默认） |
 | `scripts/convert_pdf_to_md.py` | PDF→MD 转换（MinerU Open API CLI 封装） |
 | `scripts/mineru/install.ps1` | MinerU 官方安装器（随 Skill 分发） |
 | `scripts/manage_keys.py` | 密钥管理（set/get/list/delete） |
