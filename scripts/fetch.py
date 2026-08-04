@@ -93,7 +93,7 @@ UA = f"paper-fetch/{CLI_VERSION} (mailto:{EMAIL or 'anonymous'})"
 # we want a PDF, and the host allowlist still restricts where we fetch.
 DOWNLOAD_UA = (
     f"Mozilla/5.0 (compatible; paper-fetch/{CLI_VERSION}; "
-    f"+https://github.com/obra/paper-fetch) "
+    f"+https://github.com/Agents365-ai/paper-fetch) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 # MDPI's CDN (Akamai) runs a User-Agent whitelist: it 403s browser UAs and

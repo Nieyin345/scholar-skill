@@ -30,7 +30,7 @@ scholar 不是从零编写的单一 Skill，而是**多个公开 Skill / 插件 
 
 | 融合来源 | 链接 | 吸收位置 | 吸收内容 |
 |----------|------|----------|----------|
-| paper-fetch | https://github.com/obra/paper-fetch | `scripts/fetch.py` + `cloak_pdf.py` | 文献 PDF 下载（多源解析 + %PDF 校验） |
+| paper-fetch | https://github.com/Agents365-ai/paper-fetch | `scripts/fetch.py` + `cloak_pdf.py` | 文献 PDF 下载（多源解析 + %PDF 校验） |
 | AnySearch | https://github.com/anysearch-ai/anysearch-skill | `scripts/anysearch/` | 实时搜索 CLI（Apache-2.0） |
 | scientific-illustrator | https://github.com/icebird1998/scientific-illustrator | `plugins/scientific-illustrator/` | 科研插图 MCP 后端（3 个 server + 6 个子 skill，MIT） |
 | MinerU | https://github.com/opendatalab/MinerU | `scripts/mineru/` + `convert_pdf_to_md.py` | PDF→MD 精提取 CLI |
@@ -198,7 +198,7 @@ scholar **不设「先配置再使用」的首次触发流程**：触发即用�
 ## 第三方来源与许可
 
 - Skill 本体（SKILL.md / workflows / standards / tools / references 自研部分）：MIT（见 LICENSE）。
-- `scripts/fetch.py`、`scripts/cloak_pdf.py`：源自 [obra/paper-fetch](https://github.com/obra/paper-fetch)，遵循其上游许可证。
+- `scripts/fetch.py`、`scripts/cloak_pdf.py`：源自 [paper-fetch](https://github.com/Agents365-ai/paper-fetch)，遵循其上游许可证。
 - `scripts/anysearch/`：来自 AnySearch，Apache-2.0（目录内附 LICENSE/NOTICE）。
 - `plugins/scientific-illustrator/`：来自 [icebird1998/scientific-illustrator](https://github.com/icebird1998/scientific-illustrator)（作者：科研up主:进击的土博），MIT License，已完整内嵌（3 个 MCP server + 6 个子 skill + officejs）。
 - `references/` 中部分规范为改写自公开 skill 生态（详见各文件「参考来源」），按「改写 + 标注来源」处理。
