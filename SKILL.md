@@ -119,7 +119,7 @@ description: |
 - 保存位置：`<skill_dir>/.env`（已被 `.gitignore` 排除，**不会上传到 GitHub**）。
 - 管理命令：`python scripts/manage_keys.py set <KEY> <value>` 保存；`get` / `list` / `delete` 读取、查看、删除。
 - anysearch：触发时若无 `ANYSEARCH_API_KEY` 则询问用户，提供后保存；之后每次自动使用。用户没有 key 则匿名访问。
-- MinerU：`flash` 免认证；`extract` 需要 `MINERU_TOKEN`——转换脚本自动从 `.env` 读取并传 `--token`；缺失时提示用户保存后再跑。
+- MinerU：`flash` 免认证（轻量模型，限 10MB/20 页）；`extract` 需要 `MINERU_TOKEN`，且默认 `--model vlm`（最高精度，公式/表格/复杂版面最好），扫描版 PDF 加 `--ocr`——转换脚本自动从 `.env` 读取并传 `--token`；缺失时提示用户保存后再跑。
 - paper-fetch：`UNPAYWALL_EMAIL` 缺失时询问用户；提供后保存，之后不再问。
 - 机构认证会话：`PAPER_FETCH_INSTITUTIONAL=1`（+ `PAPER_FETCH_EZPROXY`）可选；cookie jar 存在时流程一自动走两级机构下载（见「机构认证下载」），不属首次触发必问项。
 - 密钥失效/更新：`delete` 删除后重新 `set`。
@@ -190,7 +190,7 @@ $env:CLOAKBROWSER_PYTHON = 'C:\Python313\python.exe'
 | `scripts/fetch.py` + `scripts/cloak_pdf.py` | 文献 PDF 下载（paper-fetch，多源解析 + %PDF 校验；含 OpenAIRE 源、MDPI CDN 兜底、机构 cookie jar/EZproxy） |
 | `scripts/institutional_login.py` | 机构认证登录向导（EZproxy/SSO，导出会话 cookie jar，不存密码） |
 | `scripts/institutional_download.py` | 机构认证浏览器下载（复用 cookie jar 过 WAF 下载 IEEE 等付费墙 PDF，headless 默认；自动探测 cloakbrowser 解释器） |
-| `scripts/convert_pdf_to_md.py` | PDF→MD 转换（MinerU CLI；内置长超时上传兜底，支持 URL 模式/大文件，extract 输出 md+images） |
+| `scripts/convert_pdf_to_md.py` | PDF→MD 转换（MinerU CLI；flash 免认证 / extract 精提取，默认 `--model vlm` 最高精度，支持 `--ocr`/`--pages`，内置长超时上传兜底，URL 模式/大文件，输出 md+images） |
 | `scripts/mineru/install.ps1` | MinerU 官方安装器（随 Skill 分发） |
 | `scripts/manage_keys.py` | 密钥管理（set/get/list/delete） |
 | `scripts/anysearch/` | 实时搜索 CLI（anysearch） |

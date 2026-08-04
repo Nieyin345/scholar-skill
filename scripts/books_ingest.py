@@ -65,7 +65,7 @@ def list_orphan_pdfs(root: Path) -> dict:
     return {"ok": True, "orphans": orphans}
 
 
-def ingest(pdf: Path, category: str, title: str, mode: str, root: Path) -> dict:
+def ingest(pdf: Path, category: str, title: str, mode: str, root: Path, model: str = "vlm", ocr: bool = False) -> dict:
     if not pdf.exists():
         return {"ok": False, "error": f"PDF 不存在: {pdf}"}
     target_dir = root / category / title
@@ -85,8 +85,11 @@ def ingest(pdf: Path, category: str, title: str, mode: str, root: Path) -> dict:
         result["error"] = f"未找到转换脚本: {CONVERT}"
         _append_index(root, title, category, pdf, None, result)
         return result
+    cmd = [sys.executable, str(CONVERT), str(pdf), "--out", str(target_dir), "--mode", mode, "--model", model]
+    if ocr:
+        cmd.append("--ocr")
     proc = subprocess.run(
-        [sys.executable, str(CONVERT), str(pdf), "--out", str(target_dir), "--mode", mode],
+        cmd,
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     try:
@@ -142,6 +145,8 @@ def main() -> int:
     p_ing.add_argument("--category", required=True, help="二级方向（如 通信 / 机器学习）")
     p_ing.add_argument("--title", required=True, help="三级教材名（教材文件夹名）")
     p_ing.add_argument("--mode", choices=["flash", "extract"], default="flash", help="转换模式（默认 flash）")
+    p_ing.add_argument("--model", choices=["vlm", "pipeline"], default="vlm", help="extract 精提取模型（默认 vlm 最高精度）")
+    p_ing.add_argument("--ocr", action="store_true", help="extract 模式启用 OCR（扫描版教材用）")
     p_ing.set_defaults(fn=ingest)
 
     args = ap.parse_args()
@@ -152,7 +157,7 @@ def main() -> int:
         elif args.cmd == "list-orphan-pdfs":
             result = args.fn(root)
         else:
-            result = args.fn(Path(args.pdf), args.category, args.title, args.mode, root)
+            result = args.fn(Path(args.pdf), args.category, args.title, args.mode, root, args.model, args.ocr)
     except Exception as e:  # noqa: BLE001
         result = {"ok": False, "error": str(e)}
     print(json.dumps(result, ensure_ascii=False, indent=2))
