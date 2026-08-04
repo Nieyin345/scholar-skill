@@ -11,7 +11,7 @@
   add-topic <主题>      在论文库下创建研究方向文件夹：论文/<主题>/ + 00_项目导航.md + 登记论文/00_索引.md
   thesis-template <主题> 在论文/<主题>/ 下创建 LaTeX 模板目录 thesis/（默认复制内置模板；--from 用用户模板，支持目录或 .zip）
   list-topics           列出论文库已登记的研究方向
-  cleanup-tmp           清空 .scholar_tmp/（会话结束时调用；只删该目录内容，不删其他文件）
+  cleanup-tmp           清空 .scholar_tmp/（每次触发前/阶段结束/会话结束调用；只删该目录内容，不删其他文件）
 
 用法示例：
   python scripts/init_workspace.py init --project "D:/path/to/project"
@@ -104,10 +104,11 @@ NOTES_NAV_HEADER = """# 00-导航
 
 TMP_README = """# .scholar_tmp（临时工作区，可随时清空）
 
-> 本目录存放 scholar 会话过程中的临时脚本与中间产物（搜索缓存、临时 py/json/txt 等）。
-> 纪律：
-> 1. 临时脚本/中间产物一律放这里，**禁止散落在项目根目录**；
-> 2. 会话结束（或工作流阶段门禁通过）时调用 `python scripts/init_workspace.py cleanup-tmp` 清空；
+> 本目录存放 scholar 的**一切中间产物**：临时脚本（py/ps1/sh/json/go/html/txt 等）、批量下载中转 PDF、转换日志、拆分/合并的中间 pdf/md、测试与失败重试文件、网页快照等——只要不属于三库最终产物（论文/笔记/书籍的正式文档与导航），一律放这里。
+> 子目录按需：`downloads/`（下载中转，归档后即清）、`logs/`、`scripts/` 等。
+> 纪律（定期清理）：
+> 1. **每次触发流程前**先 `cleanup-tmp`；每个阶段完成 / 门禁通过后清理该阶段中间文件；批量任务每批归档完成立即清空 `downloads/`；**会话结束必须 `cleanup-tmp`**；
+> 2. `cleanup-tmp` 只清本目录内容，不碰 `.env`（密钥）、`state.json`、`.scholar_institutional/`（机构登录 cookie）与三库文件；
 > 3. 本目录以 `.` 开头，Obsidian 默认隐藏；不登记进任何导航文档。
 """
 

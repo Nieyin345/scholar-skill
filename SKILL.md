@@ -19,6 +19,8 @@ description: |
 
 **scholar 不设「先配置再使用」的首次触发流程**：每次触发直接按用户需求路由，不因「未配置密钥」而阻塞或提问。
 
+**临时区清理（每次触发，自动）**：开始任何流程前先运行 `python scripts/init_workspace.py cleanup-tmp` 清空 `<项目>/.scholar_tmp/`（只删该目录内容，不碰 `.env` / `state.json` / 三库）；若其中有未归档的下载 PDF（`.scholar_tmp/downloads/`）→ 先按流程一「下载即归档」归位到论文库再清理。
+
 1. **三库骨架（自动，幂等）**：每次触发第一步确认当前工作目录（cwd）下三个并行子文件夹存在——`论文/`（论文库）、`笔记/`（学习笔记库，可直接作为 Obsidian vault 打开）、`书籍/`（教材库）——缺失才创建（`python scripts/init_workspace.py init`，不询问路径、不做全盘扫描）；首次触发时把 `first_trigger_at` 记入 `<skill_dir>/state.json`（信息性，不 gate 任何流程）。
 2. **密钥不预设**：触发时**从不批量询问密钥**。只有**用到某个 key 的那一刻**才检查 `.env`：缺失或失效 → 按「密钥获取与保存规则」向用户获取并保存；已有 → 直接复用，不再问。
 3. **路径覆盖（可选）**：用户已有独立 Obsidian vault / 书籍库目录时，用 `python scripts/setup_state.py set-path <key> <value>` 指定；有则读取复用，没有就用 cwd 默认三库。
@@ -57,7 +59,9 @@ description: |
 
 ### 工作纪律（防混乱 + 提速，强制）
 
-1. **临时文件不进项目根目录**：所有临时脚本与中间产物（`_*.py` / `_*.txt` / `_*.json` 等）一律放 `<项目>/.scholar_tmp/`（`init` 已创建）；阶段结束或会话结束时运行 `python scripts/init_workspace.py cleanup-tmp` 清空；**禁止在项目根目录或主题文件夹散落临时文件**；批量下载中转目录同样只允许 `<项目>/.scholar_tmp/downloads/`，归档后必须清空，禁止在 `论文/<主题>/` 下留 `downloads/` 残留；
+1. **一切中间产物都进 `<项目>/.scholar_tmp/`（总则，强制）**：任何脚本与中间文件——临时 `_*.py` / `_*.ps1` / `_*.sh` / `_*.txt` / `_*.json` / `_*.go` / `_*.html`、批量下载中转 PDF、转换日志、拆分/合并的中间 pdf/md、测试与失败重试文件、网页快照等——只要**不属于三库最终产物**（`论文/` `笔记/` `书籍/` 内的正式文档与导航/索引/规范），一律放 `.scholar_tmp/`（`init` 已创建），并按需建子目录：`.scholar_tmp/downloads/`（下载中转）、`.scholar_tmp/logs/`、`.scholar_tmp/scripts/` 等；**禁止散落在项目根目录、主题文件夹或三库目录里**（反例：cwd 根目录的 `_*.py` / `*.retry.ps1`、主题下的 `downloads/`）；
+   - **定期清理（强制节奏）**：① 每次触发流程前先 `cleanup-tmp`（见「触发即用」）；② 每个流程阶段完成 / 阶段门禁通过后，清理该阶段产生的中间文件；③ 批量任务每批归档完成立即清空中转子目录（如 `.scholar_tmp/downloads/`）；④ **会话结束必须 `python scripts/init_workspace.py cleanup-tmp` 收尾**；
+   - `cleanup-tmp` 只清 `.scholar_tmp/` 内容，不碰 `.env`（密钥）、`state.json`、`.scholar_institutional/`（机构登录 cookie，需长期保留）与三库文件；
 2. **优先用自带脚本，不手写重复轮子**：检索用 `scripts/anysearch/`（`search` / `batch_search`，注意 anysearch **没有 `-o` 参数**）与 `scripts/arxiv_search.py`（`-o/--output` 是其专属参数，别混用）；下载用 `scripts/fetch.py`（可一次传多个 DOI）；转换用 `scripts/convert_pdf_to_md.py`；确需写临时脚本 → 必须放 `.scholar_tmp/`；
 3. **下载成功才建论文文件夹**：`论文/<主题>/<论文短名-年>/` 文件夹只在 PDF 成功落地后创建；下载失败的 DOI **不建文件夹**（已误建则删除空文件夹），只在 `01_检索结果.md` 标记 reason；
 4. **长文先目录后小节**：综述/长文先读章节标题与目录，再按需读相关小节，**不重复整篇读取**（已读内容不复读）；批量检索一次查询到位，避免逐条小步调用拖慢节奏；
