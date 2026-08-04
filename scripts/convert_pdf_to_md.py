@@ -17,7 +17,7 @@ http.Client 单请求 60s 超时，而到阿里云上海 OSS 的上传常仅 40-
 
 用法：
   python convert_pdf_to_md.py <pdf路径|URL> --out <输出文件夹> [--mode flash|extract]
-       [--model vlm|pipeline] [--ocr] [--pages <页范围>]
+       [--model vlm|pipeline] [--ocr] [--pages <页范围>] [--md-name <规范短名>]
        [--language en] [--timeout 300] [--upload-timeout 900] [--bin <cli路径>]
 """
 from __future__ import annotations
@@ -181,7 +181,7 @@ def _poll(poll_fn, timeout: int, interval: int = 5) -> dict:
     raise RuntimeError(f"MinerU 任务轮询超时（>{timeout}s）")
 
 
-def api_flash_convert(source: str, out_dir: Path, language: str, upload_timeout: int) -> str:
+def api_flash_convert(source: str, out_dir: Path, language: str, upload_timeout: int, md_name: str = "") -> str:
     """flash（agent）API：URL 模式服务器端抓取 / 本地文件长超时上传。返回 .md 路径。"""
     if _is_url(source):
         payload = {"url": source, "language": language}
@@ -221,12 +221,12 @@ def api_flash_convert(source: str, out_dir: Path, language: str, upload_timeout:
         raise RuntimeError("任务完成但未返回 markdown_url")
     md_text = _raw_get(md_url, timeout=180).decode("utf-8", errors="replace")
     out_dir.mkdir(parents=True, exist_ok=True)
-    target = out_dir / (stem + ".md")
+    target = out_dir / ((md_name or stem) + ".md")
     target.write_text(md_text, encoding="utf-8")
     return str(target)
 
 
-def api_extract_convert(source: str, out_dir: Path, language: str, upload_timeout: int, token: str, model: str = "vlm", ocr: bool = False, pages: str = "") -> str:
+def api_extract_convert(source: str, out_dir: Path, language: str, upload_timeout: int, token: str, model: str = "vlm", ocr: bool = False, pages: str = "", md_name: str = "") -> str:
     """extract（v4）API：精提取，返回 .md 路径，图片写入 out_dir/images/。"""
     auth = {"Authorization": "Bearer " + token}
     if _is_url(source):
@@ -287,15 +287,15 @@ def api_extract_convert(source: str, out_dir: Path, language: str, upload_timeou
     print("[convert] 下载解析结果 zip...", file=sys.stderr)
     zip_bytes = _raw_get(zip_url, timeout=300)
     out_dir.mkdir(parents=True, exist_ok=True)
-    target = out_dir / (stem + ".md")
+    target = out_dir / ((md_name or stem) + ".md")
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
         names = z.namelist()
-        md_name = next((n for n in names if n.endswith("full.md")), None)
-        if md_name is None:
-            md_name = next((n for n in names if n.endswith(".md") and not n.startswith("_")), None)
-        if md_name is None:
+        zip_md_name = next((n for n in names if n.endswith("full.md")), None)
+        if zip_md_name is None:
+            zip_md_name = next((n for n in names if n.endswith(".md") and not n.startswith("_")), None)
+        if zip_md_name is None:
             raise RuntimeError("结果 zip 中未找到 full.md")
-        target.write_bytes(z.read(md_name))
+        target.write_bytes(z.read(zip_md_name))
         img_dir = out_dir / "images"
         img_dir.mkdir(parents=True, exist_ok=True)
         for n in names:
@@ -304,7 +304,7 @@ def api_extract_convert(source: str, out_dir: Path, language: str, upload_timeou
     return str(target)
 
 
-def _convert_via_api(pdf_path: Path, out_dir: Path, mode: str, language: str, upload_timeout: int, model: str = "vlm", ocr: bool = False, pages: str = "") -> dict:
+def _convert_via_api(pdf_path: Path, out_dir: Path, mode: str, language: str, upload_timeout: int, model: str = "vlm", ocr: bool = False, pages: str = "", md_name: str = "") -> dict:
     try:
         if mode == "extract":
             token = os.environ.get("MINERU_TOKEN", "").strip() or _env_value("MINERU_TOKEN")
@@ -314,9 +314,9 @@ def _convert_via_api(pdf_path: Path, out_dir: Path, mode: str, language: str, up
                     "pdf": str(pdf_path),
                     "error": "extract 模式需要 MinerU API Token（python scripts/manage_keys.py set MINERU_TOKEN <token>）",
                 }
-            md = api_extract_convert(str(pdf_path), out_dir, language, upload_timeout, token, model, ocr, pages)
+            md = api_extract_convert(str(pdf_path), out_dir, language, upload_timeout, token, model, ocr, pages, md_name)
         else:
-            md = api_flash_convert(str(pdf_path), out_dir, language, upload_timeout)
+            md = api_flash_convert(str(pdf_path), out_dir, language, upload_timeout, md_name)
         return {"ok": True, "pdf": str(pdf_path), "md": md, "mode": mode, "via": "api"}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "pdf": str(pdf_path), "error": str(e)}
@@ -326,7 +326,7 @@ def _convert_via_api(pdf_path: Path, out_dir: Path, mode: str, language: str, up
 # 官方 CLI 路径（小文件优先）
 # ---------------------------------------------------------------------------
 
-def _convert_via_cli(pdf: Path, out_dir: Path, mode: str, language: str, timeout: int, bin_path: str, model: str = "vlm", ocr: bool = False, pages: str = "") -> dict:
+def _convert_via_cli(pdf: Path, out_dir: Path, mode: str, language: str, timeout: int, bin_path: str, model: str = "vlm", ocr: bool = False, pages: str = "", md_name: str = "") -> dict:
     token = os.environ.get("MINERU_TOKEN", "").strip() or _env_value("MINERU_TOKEN")
     cmd = [bin_path]
     if mode == "extract":
@@ -381,22 +381,22 @@ def _convert_via_cli(pdf: Path, out_dir: Path, mode: str, language: str, timeout
             "error": "转换完成但未在输出目录找到 .md 文件",
         }
     produced.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-    target = out_dir / (pdf.stem + ".md")
+    target = out_dir / ((md_name or pdf.stem) + ".md")
     if produced[0].resolve() != target.resolve():
         shutil.move(str(produced[0]), str(target))
     return {"ok": True, "pdf": str(pdf), "md": str(target), "mode": mode, "via": "cli"}
 
 
-def convert(pdf: str, out_dir: Path, mode: str, language: str, timeout: int, bin_path: str, upload_timeout: int, model: str = "vlm", ocr: bool = False, pages: str = "") -> dict:
+def convert(pdf: str, out_dir: Path, mode: str, language: str, timeout: int, bin_path: str, upload_timeout: int, model: str = "vlm", ocr: bool = False, pages: str = "", md_name: str = "") -> dict:
     if _is_url(pdf):
         try:
             if mode == "extract":
                 token = os.environ.get("MINERU_TOKEN", "").strip() or _env_value("MINERU_TOKEN")
                 if not token:
                     return {"ok": False, "pdf": pdf, "error": "extract 模式需要 MinerU API Token"}
-                md = api_extract_convert(pdf, out_dir, language, upload_timeout, token, model, ocr, pages)
+                md = api_extract_convert(pdf, out_dir, language, upload_timeout, token, model, ocr, pages, md_name)
             else:
-                md = api_flash_convert(pdf, out_dir, language, upload_timeout)
+                md = api_flash_convert(pdf, out_dir, language, upload_timeout, md_name)
             return {"ok": True, "pdf": pdf, "md": md, "mode": mode, "via": "api-url"}
         except Exception as e:  # noqa: BLE001
             return {"ok": False, "pdf": pdf, "error": str(e)}
@@ -408,9 +408,9 @@ def convert(pdf: str, out_dir: Path, mode: str, language: str, timeout: int, bin
 
     if pdf_path.stat().st_size > CLI_UPLOAD_CEILING:
         print("[convert] 文件较大，直接使用内置长超时上传通道（绕开官方 CLI 60s 硬超时）...", file=sys.stderr)
-        return _convert_via_api(pdf_path, out_dir, mode, language, upload_timeout, model, ocr, pages)
+        return _convert_via_api(pdf_path, out_dir, mode, language, upload_timeout, model, ocr, pages, md_name)
 
-    result = _convert_via_cli(pdf_path, out_dir, mode, language, timeout, bin_path, model, ocr, pages)
+    result = _convert_via_cli(pdf_path, out_dir, mode, language, timeout, bin_path, model, ocr, pages, md_name)
     if result.get("ok"):
         return result
     err = (result.get("error") or "").lower()
@@ -434,6 +434,7 @@ def main() -> int:
     )
     ap.add_argument("--ocr", action="store_true", help="extract 模式启用 OCR（扫描版 PDF 用；flash 不支持）")
     ap.add_argument("--pages", default="", help="extract 模式只转指定页范围，如 '1-10,15'（flash 不支持）")
+    ap.add_argument("--md-name", default="", help="输出 md 的规范文件名（不含扩展名，如论文短名 <短名>.md；默认用 PDF 原名）")
     ap.add_argument("--language", default="en", help="文档语言，默认 en")
     ap.add_argument("--timeout", type=int, default=300, help="CLI 内部超时秒数（默认 300）；外层硬超时为其 +120s")
     ap.add_argument("--upload-timeout", type=int, default=900, help="内置长超时上传单次上限秒数（默认 900，重试 3 次）")
@@ -451,7 +452,7 @@ def main() -> int:
         if need_cli:
             bin_path = args.bin or _default_bin()
             bin_path = ensure_bin(bin_path)
-        result = convert(pdf, out_dir, args.mode, args.language, args.timeout, bin_path, args.upload_timeout, args.model, args.ocr, args.pages)
+        result = convert(pdf, out_dir, args.mode, args.language, args.timeout, bin_path, args.upload_timeout, args.model, args.ocr, args.pages, args.md_name)
     except Exception as e:  # noqa: BLE001
         result = {"ok": False, "pdf": args.pdf, "error": str(e)}
 

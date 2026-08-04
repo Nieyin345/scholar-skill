@@ -3,6 +3,19 @@
 ## Usage
 This template provides the skeleton for a thematic literature review paper that synthesizes existing research, identifies gaps, and proposes future directions.
 
+## Citation & Linking Convention（引用与链接约定，必须遵守）
+
+- 每处正文引用与参考文献条目必须**可点击跳转到对应论文 MD**（Obsidian 库内），禁止纯文本编号：
+  - Obsidian wikilink（主推，Obsidian 自动跟踪改名）：`[[<论文短名>|<作者 年份>]]`
+  - 或相对 Markdown 链接（Obsidian 与 GitHub 均可渲染）：`[作者 年份](./<论文短名>/<论文短名>.md)`
+- 链接目标以文件系统**真实存在**的 md 文件名为准（新转换产物统一 `<短名>.md`；历史文件先查实际文件名）。
+- 未下载 / 未转换的文献不得出现在正文引用与参考文献。
+
+示例：
+- 正文：Transformer-based schedulers achieve lower blocking ...（[Cao et al. 2020](./2020-multi-tenant-prov/2020-multi-tenant-prov.md)）
+- 参考文献：
+  1. [Cao, Y., et al. Multi-Tenant Provisioning for QKD Networks. IEEE TNSM, 2020.](./2020-multi-tenant-prov/2020-multi-tenant-prov.md)
+
 ---
 
 # [Paper Title in Title Case]
