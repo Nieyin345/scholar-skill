@@ -28,3 +28,6 @@ references/latex-template/*.pdf
 # 首次触发状态（本机级，不上传 GitHub）
 state.json
 state.local.json
+
+# 机构认证会话 cookie（本机级，禁止上传 GitHub）
+.scholar_institutional/

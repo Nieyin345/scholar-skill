@@ -2,7 +2,10 @@
 """Fetch legal open-access PDFs by DOI.
 
 Resolution order: Unpaywall -> Semantic Scholar openAccessPdf ->
-arXiv -> PMC OA -> bioRxiv/medRxiv -> OpenAlex OA.
+arXiv -> PMC OA -> bioRxiv/medRxiv -> OpenAlex OA -> OpenAIRE
+(repository / preprint links). In institutional mode, a publisher-direct
+fallback (IEEE/Springer/Elsevier/...) runs last, optionally routed through
+EZproxy with the operator's authenticated cookie jar.
 
 Exit codes:
   0  success (all DOIs resolved and downloaded / dry-run previewed)
@@ -26,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import http.cookiejar
 import html.parser
 import ipaddress
 import json
@@ -48,8 +52,8 @@ from pathlib import Path
 # Versioning
 # ---------------------------------------------------------------------------
 
-CLI_VERSION = "0.15.1"
-SCHEMA_VERSION = "1.11.0"
+CLI_VERSION = "0.16.0"
+SCHEMA_VERSION = "1.12.0"
 
 # ---------------------------------------------------------------------------
 # Config
@@ -67,6 +71,9 @@ DOWNLOAD_UA = (
     f"+https://github.com/obra/paper-fetch) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
+# MDPI's CDN (Akamai) runs a User-Agent whitelist: it 403s browser UAs and
+# accepts curl / Python-urllib. Applied to any mdpi.com / mdpi-res.com fetch.
+MDPI_UA = "curl/8.0.0"
 DEFAULT_TIMEOUT = 30
 MAX_PDF_SIZE = 50 * 1024 * 1024  # 50 MB
 
@@ -100,6 +107,22 @@ RETRY_AFTER_HOURS = {
 # Rate limit (institutional mode only — public OA sources are unmetered by
 # their operators and do not need client-side pacing).
 INSTITUTIONAL_RATE_PER_SEC = 1.0
+
+# --- Institutional access (EZproxy / subscription cookies) ---
+# PAPER_FETCH_EZPROXY=<base>  e.g. https://ezproxy.library.univ.edu
+#   When set together with PAPER_FETCH_INSTITUTIONAL=1, publisher-direct
+#   URLs are routed through EZproxy's standard /login?url= redirect so the
+#   operator's authenticated library session authorizes the fetch.
+# PAPER_FETCH_COOKIE_JAR=<path>
+#   Netscape-format cookie jar written by scripts/institutional_login.py.
+#   Defaults to <skill_dir>/.scholar_institutional/cookies.txt. The jar is
+#   read-only by fetch.py; never write credentials into it.
+_SKILL_DIR = Path(__file__).resolve().parent.parent
+EZPROXY_BASE = os.environ.get("PAPER_FETCH_EZPROXY", "").strip().rstrip("/")
+COOKIE_JAR_PATH = Path(
+    os.environ.get("PAPER_FETCH_COOKIE_JAR", "").strip()
+    or (_SKILL_DIR / ".scholar_institutional" / "cookies.txt")
+)
 
 # ---------------------------------------------------------------------------
 # Sci-Hub fallback
@@ -552,6 +575,48 @@ def _is_allowed_host(url: str) -> bool:
     return ok
 
 
+def _download_ua_for(url: str) -> str:
+    """Per-host download User-Agent (MDPI whitelist vs. browser UA)."""
+    host = (urllib.parse.urlparse(url).hostname or "").lower()
+    if "mdpi.com" in host or "mdpi-res.com" in host:
+        return MDPI_UA
+    return DOWNLOAD_UA
+
+
+# Module-level cookie-jar cache: False = not yet probed, None = absent,
+# otherwise the loaded jar. Reloaded per process only; regenerating the jar
+# (a new login) takes effect on the next fetch.py invocation.
+_cookie_jar_cache: http.cookiejar.CookieJar | None | bool = False
+
+
+def _cookie_jar() -> http.cookiejar.CookieJar | None:
+    """Load the institutional cookie jar (Netscape format), or None."""
+    global _cookie_jar_cache
+    if _cookie_jar_cache is not False:
+        return _cookie_jar_cache or None
+    try:
+        if not COOKIE_JAR_PATH.exists():
+            _cookie_jar_cache = None
+            return None
+        jar = http.cookiejar.MozillaCookieJar(str(COOKIE_JAR_PATH))
+        jar.load(ignore_discard=True, ignore_expires=True)
+        _cookie_jar_cache = jar if jar else None
+    except Exception as e:
+        _progress("download_warn", reason="cookie_jar_load_failed", error=str(e))
+        _cookie_jar_cache = None
+    return _cookie_jar_cache or None
+
+
+def _ezproxy_url(url: str) -> str:
+    """Route a publisher URL through EZproxy's standard /login?url= redirect.
+
+    With an authenticated EZproxy session (cookie jar), the /login endpoint
+    302s to the proxied resource; without one it serves the login page, which
+    fails the %PDF check and lets the fallback loop continue.
+    """
+    return f"{EZPROXY_BASE}/login?url={urllib.parse.quote(url, safe='')}"
+
+
 def _download(url: str, dest: Path, *, timeout: int) -> str | None:
     """Download a PDF. Returns None on success, or an error slug on failure."""
     allowed, deny_reason = _url_fetch_allowed(url)
@@ -593,13 +658,19 @@ def _download(url: str, dest: Path, *, timeout: int) -> str | None:
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": DOWNLOAD_UA,
+            "User-Agent": _download_ua_for(url),
             "Accept": "application/pdf,*/*;q=0.8",
         },
     )
+    jar = _cookie_jar() if _is_institutional() else None
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            data = r.read(MAX_PDF_SIZE + 1)
+        if jar is not None:
+            opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+            with opener.open(req, timeout=timeout) as r:
+                data = r.read(MAX_PDF_SIZE + 1)
+        else:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = r.read(MAX_PDF_SIZE + 1)
     except Exception as e:
         # Surface HTTP status when present (urllib.error.HTTPError carries .code).
         # Lets agents distinguish a 403 publisher block (try a VPN / different
@@ -750,6 +821,114 @@ def try_openalex(doi: str, *, timeout: int, errors: list | None = None) -> tuple
         "journal": source.get("display_name"),
     }
     return best, meta
+
+
+def _openaire_first_text(node) -> str | None:
+    """Extract the first text payload from OpenAIRE's variable shapes."""
+    if isinstance(node, str):
+        return node
+    if isinstance(node, dict):
+        if isinstance(node.get("$"), str):
+            return node["$"]
+        for v in node.values():
+            found = _openaire_first_text(v)
+            if found:
+                return found
+    elif isinstance(node, list):
+        for item in node:
+            found = _openaire_first_text(item)
+            if found:
+                return found
+    return None
+
+
+def _openaire_collect_urls(metadata: dict) -> list[str]:
+    """Collect fulltext + instance webresource URLs from an OpenAIRE record."""
+    urls: list[str] = []
+    ft = metadata.get("fulltext")
+    ft_url = _openaire_first_text(ft)
+    if ft_url and ft_url.startswith("http"):
+        urls.append(ft_url)
+    children = metadata.get("children") or {}
+    for key in ("result", "instance"):
+        for item in children.get(key) or []:
+            inst = item.get("instance") if isinstance(item, dict) else None
+            if not isinstance(inst, dict):
+                continue
+            wrs = inst.get("webresource")
+            if isinstance(wrs, dict):
+                wrs = [wrs]
+            for wr in wrs or []:
+                u = _openaire_first_text(wr.get("url")) if isinstance(wr, dict) else None
+                if u and u.startswith("http"):
+                    urls.append(u)
+    return urls
+
+
+# Landing-page / resolver hosts that never point at a directly fetchable PDF.
+_OPENAIRE_SKIP_HOST_MARKERS = (
+    "doi.org",
+    "dx.doi.org",
+    "sciencedirect.com",
+    "researchgate.net",
+    "academia.edu",
+    "scispace.com",
+    "onlinelibrary.wiley.com",
+    "tandfonline.com",
+    "academic.oup.com",
+)
+
+
+def try_openaire(doi: str, *, timeout: int, errors: list | None = None) -> tuple[str | None, dict]:
+    """OpenAIRE repository-link fallback (no token needed).
+
+    Aggregates institutional repositories and preprint servers; frequently the
+    only source that knows about an arXiv preprint of a paywalled IEEE/Springer
+    paper. Returns (pdf_url, meta); pdf_url is None when no usable copy exists.
+    """
+    url = f"https://api.openaire.eu/search/publications?doi={urllib.parse.quote(doi)}&format=json"
+    try:
+        d = _get_json(url, timeout=timeout)
+    except Exception as e:
+        _progress("source_miss", source="openaire", reason=str(e))
+        if errors is not None and _is_transport_exc(e):
+            errors.append({"source": "openaire", "detail": str(e)})
+        return None, {}
+    res = ((d.get("response") or {}).get("results") or {}).get("result") or []
+    if not res:
+        return None, {}
+    md = res[0].get("metadata", {}).get("oaf:entity", {}).get("oaf:result", {})
+    meta = {
+        "title": _openaire_first_text(md.get("title")),
+        "year": None,
+        "author": _openaire_first_text(md.get("creator")),
+        "journal": _openaire_first_text(md.get("source") or md.get("publisher")),
+    }
+    dta = _openaire_first_text(md.get("dateofacceptance"))
+    if dta:
+        ym = re.search(r"(19|20)\d{2}", dta)
+        if ym:
+            meta["year"] = int(ym.group(0))
+    # Prefer an arXiv copy (preprint of a paywalled paper) — the most reliably
+    # fetchable form OpenAIRE surfaces.
+    for u in _openaire_collect_urls(md):
+        ax = re.search(r"arxiv\.org/(?:abs|pdf)/([0-9]{4}\.[0-9]{4,5})", u, re.IGNORECASE)
+        if not ax:
+            ax = re.search(r"10\.48550/arxiv\.([0-9]{4}\.[0-9]{4,5})", u, re.IGNORECASE)
+        if ax:
+            return f"https://arxiv.org/pdf/{ax.group(1)}.pdf", meta
+    # Otherwise pick the first direct-looking PDF URL (skip resolver/landing hosts).
+    for u in _openaire_collect_urls(md):
+        parsed = urllib.parse.urlparse(u)
+        host = (parsed.hostname or "").lower()
+        path = parsed.path.lower()
+        if any(mark in host for mark in _OPENAIRE_SKIP_HOST_MARKERS):
+            continue
+        if "ieeexplore.ieee.org" in host and path.startswith("/document"):
+            continue
+        if u.lower().endswith(".pdf") or "/pdf" in path or "/bitstream/" in path or "download" in path:
+            return u, meta
+    return None, meta
 
 
 def try_arxiv(arxiv_id: str) -> str:
@@ -1095,6 +1274,26 @@ def _try_publisher_direct(doi: str, *, timeout: int) -> list[tuple[str, str]]:
 
     if doi.startswith("10.3390/"):
         return [(url, "mdpi") for url in _mdpi_pdf_candidates(doi)]
+
+    if doi.startswith("10.1109/") or doi.startswith("10.23919/"):
+        # IEEE (and IEEE-hosted conference papers such as OECC/PS). Crossref
+        # exposes the article number and a direct PDF link on IEEE's content
+        # host; with institutional cookies / EZproxy those serve the full text.
+        try:
+            data = _get_json(f"https://api.crossref.org/works/{urllib.parse.quote(doi)}", timeout=timeout)
+        except Exception:
+            return []
+        msg = data.get("message") or {}
+        landing = ((msg.get("resource") or {}).get("primary") or {}).get("URL")
+        out: list[tuple[str, str]] = []
+        for link in msg.get("link") or []:
+            lu = (link or {}).get("URL", "")
+            if "xplorestaging.ieee.org" in lu and urllib.parse.urlparse(lu).path.lower().endswith(".pdf"):
+                out.append((lu.replace("http://xplorestaging.ieee.org/", "https://ieeexplore.ieee.org/", 1), "ieee"))
+        # Landing page last: it is HTML, only useful when the direct PDF is blocked.
+        if landing:
+            out.append((landing, "ieee"))
+        return out
 
     for prefix, (label, tmpl) in _PUBLISHER_DIRECT_TEMPLATES.items():
         if doi.startswith(prefix):
@@ -1652,6 +1851,36 @@ def fetch(
     else:
         _progress("source_miss", doi=doi, source="openalex")
 
+    # --- OpenAIRE (no token; green-OA repository / arXiv-preprint links) ---
+    _progress("source_try", doi=doi, source="openaire")
+    sources_tried.append("openaire")
+    oa2_url, oa2_meta = try_openaire(doi, timeout=timeout, errors=resolver_errors)
+    added = _merge_meta(oa2_meta)
+    if added:
+        _progress("source_enrich", doi=doi, source="openaire", fields=added)
+        fname = _filename(meta or {"title": doi})
+        dest = out_dir / fname
+    if oa2_url:
+        _progress("source_hit", doi=doi, source="openaire", pdf_url=oa2_url)
+        _add("openaire", oa2_url)
+    else:
+        _progress("source_miss", doi=doi, source="openaire")
+
+    # --- MDPI CDN fallback (any mode) ---
+    # www.mdpi.com serves OA papers but 403s many data-center / non-Western
+    # IPs regardless of UA; the pub.mdpi-res.com CDN copy of the same paper
+    # downloads cleanly. Run as a normal candidate in every mode.
+    if doi.startswith("10.3390/"):
+        _progress("source_try", doi=doi, source="mdpi_cdn")
+        mdpi_urls = _mdpi_pdf_candidates(doi)
+        if mdpi_urls:
+            sources_tried.append("mdpi_cdn")
+            for mu in mdpi_urls:
+                _progress("source_hit", doi=doi, source="mdpi_cdn", pdf_url=mu)
+                _add("mdpi_cdn", mu)
+        else:
+            _progress("source_miss", doi=doi, source="mdpi_cdn", reason="no_cdn_template")
+
     # --- Publisher-direct fallback (institutional mode only) ---
     # Runs only when the operator has opted into institutional mode. The
     # caller's IP / cookies / EZproxy are what actually authorize the fetch.
@@ -1661,6 +1890,9 @@ def fetch(
         if pub_candidates:
             sources_tried.append("publisher_direct")
             for pub_url, pub_label in pub_candidates:
+                pub_host = (urllib.parse.urlparse(pub_url).hostname or "").lower()
+                if EZPROXY_BASE and "mdpi" not in pub_host:
+                    pub_url = _ezproxy_url(pub_url)
                 _progress("source_hit", doi=doi, source="publisher_direct", pdf_url=pub_url, publisher=pub_label)
                 _add("publisher_direct", pub_url)
         else:

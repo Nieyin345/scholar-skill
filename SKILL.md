@@ -121,13 +121,32 @@ description: |
 - anysearch：触发时若无 `ANYSEARCH_API_KEY` 则询问用户，提供后保存；之后每次自动使用。用户没有 key 则匿名访问。
 - MinerU：`flash` 免认证；`extract` 需要 `MINERU_TOKEN`——转换脚本自动从 `.env` 读取并传 `--token`；缺失时提示用户保存后再跑。
 - paper-fetch：`UNPAYWALL_EMAIL` 缺失时询问用户；提供后保存，之后不再问。
+- 机构认证会话：可选的 `PAPER_FETCH_INSTITUTIONAL=1`（+ `PAPER_FETCH_EZPROXY`）由用户按需开启，不属首次触发必问项；配置详情见「机构认证下载」。
 - 密钥失效/更新：`delete` 删除后重新 `set`。
+
+## 机构认证下载（付费墙文献）
+
+公开 OA 源（Unpaywall/S2/arXiv/PMC/OpenAlex/OpenAIRE/MDPI CDN）找不到的 2025+ 付费墙论文（IEEE、Springer、IOP、de Gruyter 等），只能靠机构订阅。scholar 支持两种机构认证方式，**不保存账号密码，只保存登录会话 cookie**（`<skill_dir>/.scholar_institutional/cookies.txt`，已被 `.gitignore` 排除）：
+
+1. **EZproxy（最常见，推荐）**：用户提供学校 EZproxy 入口（如 `https://ezproxy.<学校>.edu/login`，找图书馆「校外访问」链接），运行 `python scripts/institutional_login.py <登录URL>`，在弹出的浏览器里完成登录（含 MFA），回终端回车，会话 cookie 自动落盘；
+2. **机构 SSO（Shibboleth，无 EZproxy 时）**：把 IEEE/Springer 的「Access through your institution」登录链接作为 login-url 交给同一个向导，cookie 落盘后 `fetch.py` 直连 publisher 也能带权限；
+3. 下载前设置 `PAPER_FETCH_INSTITUTIONAL=1`（用 EZproxy 时再加 `PAPER_FETCH_EZPROXY=<域名>`）；`fetch.py` 自动加载 cookie jar，并把 IEEE/Springer/Elsevier 等 publisher 直连 URL 改写成 EZproxy 代理 URL；
+4. cookie 过期后重跑向导即可，不会影响已保存的 key。
+
+### 下载失败分级（报告时按此判断，避免无意义重试）
+
+- **纯付费墙**（2025-2026 新论文且无 OA）：IEEE/Springer/IOP/de Gruyter 等 `not_found`，重试无意义 → 报告「机构订阅可下」，提示用户开启机构认证（见上）或替换为 OA 文献；
+- **MDPI 403**：`www.mdpi.com` 对部分 IP 全 UA 封禁 → 已内置 `pub.mdpi-res.com` CDN 兜底（任意模式），一般直接成功；
+- **arXiv/PMC 型**：历史 `NoneType` 崩溃已修复 → 直接重试即可；
+- **Sci-Hub 命中但下载 403/not_a_pdf**：镜像 CDN 不稳定 → 属重试类，换个时段或镜像再试；
+- **超大 PDF**（>50MB，如 17MB 云端转换超时属转换问题）：下载/转换选网络稳定时段重试。
 
 ## 共享脚本索引
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/fetch.py` + `scripts/cloak_pdf.py` | 文献 PDF 下载（paper-fetch，多源解析 + %PDF 校验） |
+| `scripts/fetch.py` + `scripts/cloak_pdf.py` | 文献 PDF 下载（paper-fetch，多源解析 + %PDF 校验；含 OpenAIRE 源、MDPI CDN 兜底、机构 cookie jar/EZproxy） |
+| `scripts/institutional_login.py` | 机构认证登录向导（EZproxy/SSO，导出会话 cookie jar，不存密码） |
 | `scripts/convert_pdf_to_md.py` | PDF→MD 转换（MinerU Open API CLI 封装） |
 | `scripts/mineru/install.ps1` | MinerU 官方安装器（随 Skill 分发） |
 | `scripts/manage_keys.py` | 密钥管理（set/get/list/delete） |
