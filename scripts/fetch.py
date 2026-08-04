@@ -59,6 +59,31 @@ SCHEMA_VERSION = "1.12.0"
 # Config
 # ---------------------------------------------------------------------------
 
+def _load_dotenv() -> None:
+    """Load <skill_dir>/.env into os.environ (never override real env vars).
+
+    scholar saves keys (ANYSEARCH_API_KEY / MINERU_TOKEN / UNPAYWALL_EMAIL and
+    PAPER_FETCH_* settings) to <skill_dir>/.env via scripts/manage_keys.py; this
+    loader makes them visible to fetch.py so saved keys are reused without asking
+    again, while explicitly-set environment variables keep precedence.
+    """
+    env_file = Path(__file__).resolve().parent.parent / ".env"
+    try:
+        for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+    except OSError:
+        pass
+
+
+_load_dotenv()
+
 EMAIL = os.environ.get("UNPAYWALL_EMAIL", "").strip()
 # UA for API calls (Unpaywall requires contact email in the UA per their ToS).
 UA = f"paper-fetch/{CLI_VERSION} (mailto:{EMAIL or 'anonymous'})"
