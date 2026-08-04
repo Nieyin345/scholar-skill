@@ -452,7 +452,7 @@ def convert(pdf: str, out_dir: Path, mode: str, language: str, timeout: int, bin
     err = (result.get("error") or "").lower()
     if any(k in err for k in ("context deadline exceeded", "client.timeout", "tls handshake timeout", "upload")):
         print("[convert] 官方 CLI 上传超时，改用内置长超时上传通道...", file=sys.stderr)
-        return _convert_via_api(pdf_path, out_dir, mode, language, upload_timeout)
+        return _convert_via_api(pdf_path, out_dir, mode, language, upload_timeout, model, ocr, pages, md_name)
     return result
 
 
