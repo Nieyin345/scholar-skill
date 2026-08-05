@@ -44,6 +44,7 @@ scholar 不是从零编写的单一 Skill，而是**多个公开 Skill / 插件 
 | 融合来源 | 链接 | 吸收内容 |
 |----------|------|----------|
 | superpowers | https://github.com/obra/superpowers | TDD、系统化调试、验证门禁、代码评审纪律 |
+| ponytail | https://github.com/DietrichGebert/ponytail | 实现前最小化决策（梯子模型：YAGNI→复用→标准库→原生→一行→最小实现）、过度工程简化审查、延迟捷径注释台账 |
 | gstack | https://github.com/garrytan/gstack | 计划评审 / 设计评审 / 文档生成工作流 |
 | wondelai/skills | https://github.com/wondelai/skills | design-code-architecture、clean-architecture 依赖规则 |
 | co-researcher | https://github.com/poemswe/co-researcher | 系统综述（PRISMA）、研究方法论、批判审查 |
