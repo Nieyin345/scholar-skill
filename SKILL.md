@@ -204,6 +204,7 @@ $env:CLOAKBROWSER_PYTHON = 'C:\Python313\python.exe'
 
 | 文档 | 内容 |
 |------|------|
+| `references/_INDEX.md` | **参考文档检索索引（先读它）**：按任务/场景速查该读哪个文件，多文件目录子文件速查 + 检索技巧；定位任何参考前先读本索引 |
 | `references/zotero-rules.md` | Zotero 目录/缓存规则、Evidence Record 模板、Claim Promotion Gate |
 | `references/key-setup-guide.md` | 密钥获取教程（AnySearch / MinerU / Unpaywall 的用途与获取方式，用到时按需查阅） |
 | `references/citation-verification/` | 引用核验规则与 API 用法 |
@@ -221,6 +222,8 @@ $env:CLOAKBROWSER_PYTHON = 'C:\Python313\python.exe'
 | `references/research-ideation/` | 研究方向确认参考（scholar 内嵌：5W1H / gap 分析 / 研究问题 / 研究契约 / 方法选择 / 检索策略 / 研究计划 / Zotero 集成） |
 | `references/obsidian-uri.md` | Obsidian 命令行 / URI 控制参考（Advanced URI：打开定位 / 触发插件命令 / 写属性；obsidian-cli 可选） |
 | `standards/` | 写作规范库（`通用写作规范.md` 跨任务底线 + 每个写作任务一份规范，随反馈持续更新；索引见 `standards/_INDEX.md`） |
+
+> **读参考先查索引**：需要任何参考内容时，先读 `references/_INDEX.md` 定位（按任务/场景），再打开对应文件；多文件目录先读入口 `GUIDE.md`，大文件用 `rg` 定位小节，禁止整目录/整文件扫读。
 
 ## 工具索引（不在流程内，按需触发）
 
