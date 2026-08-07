@@ -190,7 +190,7 @@ scholar **不设「先配置再使用」的首次触发流程**：触发即用�
 │       ├── 03_文献综述.md
 │       ├── 解决方案/         # 01 场景分析 / 02 实现逻辑 / 03 代码架构
 │       ├── implementation/   # 流程三代码实现 + 实验图 figures/
-│       ├── paper/            # 流程四论文 + versions/（历史版本与 review 反馈）
+│       ├── thesis/           # 流程四论文工作目录（模板整体复制 + 写作产物 + versions/）
 │       └── figures/          # 科研插图工具产出（示意图）
 ├── 笔记/                    # 学习笔记库（Sources/Papers、Knowledge、00-导航.md）
 └── 书籍/                    # 教材库（<方向>/<教材名>/：pdf + md + 图床，00_索引.md）
