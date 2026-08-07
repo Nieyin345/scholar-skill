@@ -42,7 +42,7 @@ description: |
 │   ├── 00_索引.md             ← 论文库索引（研究方向注册表，库级导航）
 │   └── <主题>/                ← 研究方向文件夹（流程0/一在论文库下创建，禁止建在 cwd 根）
 │       ├── 00_项目导航.md     ← 主题级导航（本 skill 维护）
-│       ├── 00_研究方向.md / thesis/（论文工作目录：模板整体副本 + 写作产物 + versions/） / 03_文献综述.md / 解决方案/ / implementation/ / figures/
+│       ├── 00_研究方向.md / thesis/（论文工作目录：template/ 原始模板参考只读 + 工作副本 + versions/） / 03_文献综述.md / 解决方案/ / implementation/ / figures/
 │       └── <论文短名-年>/     ← 每篇论文一个文件夹：pdf + md
 ├── 笔记/                      ← 学习笔记库（可直接作为 Obsidian vault 打开）
 │   ├── 00-导航.md / 02-Index.md / Sources/Papers/ / Knowledge/ / _system/

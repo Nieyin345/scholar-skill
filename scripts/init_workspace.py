@@ -9,7 +9,7 @@
 命令：
   init                  创建三库骨架 + 论文/00_索引.md + 笔记/00-导航.md + 书籍/00_索引.md（幂等，不扫描）
   add-topic <主题>      在论文库下创建研究方向文件夹：论文/<主题>/ + 00_项目导航.md + 登记论文/00_索引.md
-  thesis-template <主题> 在论文/<主题>/ 下创建 LaTeX 模板目录 thesis/（默认复制内置模板；--from 用用户模板，支持目录或 .zip）
+  thesis-template <主题> 创建论文模板目录 thesis/（两级：thesis/template/ 原始模板参考只读 + thesis/ 根工作副本；默认复制内置模板；--from 用用户模板，支持目录或 .zip）
   list-topics           列出论文库已登记的研究方向
   cleanup-tmp           清空 .scholar_tmp/（每次触发前/阶段结束/会话结束调用；只删该目录内容，不删其他文件）
 
@@ -219,11 +219,14 @@ def add_topic(topic: str, project: Path) -> dict:
 
 
 def thesis_template(topic: str, project: Path, from_path: str | None = None, force: bool = False) -> dict:
-    """创建/更新论文 LaTeX 模板目录 论文/<主题>/thesis/。
+    """创建/更新论文 LaTeX 模板目录 论文/<主题>/thesis/（两级结构）。
 
+    thesis/template/ = 原始模板参考（只读，禁止修改；review 对照它检查格式）；
+    thesis/ 根       = 工作副本（从 template/ 复制，写作/编译都在这里）。
     from_path 为空 → 复制内置默认模板（references/latex-template/）；
     from_path 为目录或 .zip → 用用户模板（zip 若只有单一顶层文件夹会自动去掉该层）。
-    thesis/ 已存在且非空且未传 force → 不覆盖（返回 existing 提示）。
+    thesis/ 已存在且非空且未传 force → 不覆盖（返回 existing 提示）；
+    --force 会删除整个 thesis/（含已有写作产物）后重建，换模板前请先备份 versions/。
     """
     if not topic or topic.strip() in {".", ".."}:
         return {"ok": False, "error": "主题名不能为空或路径分隔符"}
@@ -239,12 +242,15 @@ def thesis_template(topic: str, project: Path, from_path: str | None = None, for
             "thesis": str(thesis_dir),
             "source": "existing",
             "files": existing,
-            "note": "thesis/ 已存在且非空，未覆盖；确需换模板请加 --force",
+            "note": "thesis/ 已存在且非空，未覆盖；确需换模板请加 --force（注意：--force 会删除已有写作产物）",
         }
     if thesis_dir.exists():
         shutil.rmtree(thesis_dir)
     thesis_dir.mkdir(parents=True, exist_ok=True)
+    ref_dir = thesis_dir / "template"
+    ref_dir.mkdir(parents=True, exist_ok=True)
 
+    # 1) 复制模板到 thesis/template/（原始模板参考，只读）
     if from_path:
         src = Path(from_path).expanduser()
         if not src.exists():
@@ -263,7 +269,7 @@ def thesis_template(topic: str, project: Path, from_path: str | None = None, for
                         rel = n[len(prefix):]
                         if not rel:
                             continue
-                        target = thesis_dir / rel
+                        target = ref_dir / rel
                         if n.endswith("/"):
                             target.mkdir(parents=True, exist_ok=True)
                         else:
@@ -271,23 +277,36 @@ def thesis_template(topic: str, project: Path, from_path: str | None = None, for
                             with zf.open(n) as s, open(target, "wb") as d:
                                 shutil.copyfileobj(s, d)
                 else:
-                    zf.extractall(thesis_dir)
+                    zf.extractall(ref_dir)
             source = str(src)
         elif src.is_dir():
-            shutil.copytree(src, thesis_dir, dirs_exist_ok=True)
+            shutil.copytree(src, ref_dir, dirs_exist_ok=True)
             source = str(src)
         else:
             return {"ok": False, "error": f"不支持的模板文件（仅支持目录或 .zip）：{src}"}
     else:
         if not LATEX_TEMPLATE_DIR.exists():
             return {"ok": False, "error": f"默认模板缺失：{LATEX_TEMPLATE_DIR}"}
-        shutil.copytree(LATEX_TEMPLATE_DIR, thesis_dir, dirs_exist_ok=True)
+        shutil.copytree(LATEX_TEMPLATE_DIR, ref_dir, dirs_exist_ok=True)
         source = "default:" + str(LATEX_TEMPLATE_DIR)
 
+    # 2) 从 template/ 复制一份到 thesis/ 根（工作副本，写作/编译在这里）
+    for item in ref_dir.iterdir():
+        dst = thesis_dir / item.name
+        if item.is_dir():
+            shutil.copytree(item, dst, dirs_exist_ok=True)
+        else:
+            shutil.copy2(item, dst)
+
     files = sorted(p.name for p in thesis_dir.iterdir() if p.is_file())
-    return {"ok": True, "thesis": str(thesis_dir), "source": source, "files": files}
-
-
+    return {
+        "ok": True,
+        "thesis": str(thesis_dir),
+        "template_ref": str(ref_dir),
+        "source": source,
+        "files": files,
+        "note": "template/ = 原始模板参考（只读）；thesis/ 根 = 工作副本（写作/编译处）。",
+    }
 def list_topics(project: Path) -> dict:
     papers = project / PAPERS_DIR
     index = papers / "00_索引.md"

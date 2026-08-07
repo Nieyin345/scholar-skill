@@ -42,7 +42,7 @@
 │   ├── results/              ← 实验原始指标/日志/配置快照（03 §4）
 │   ├── figures/              ← 实验数据图（SVG/PDF/300dpi PNG，03 §4）
 │   └── tables/               ← 论文用表（CSV/JSON/LaTeX，03 §4）
-└── thesis/                   ← 流程四：论文工作目录（模板整体复制 + 写作产物 + versions/）
+└── thesis/                   ← 流程四：论文工作目录（template/ 原始模板参考只读 + 工作副本 + 写作产物 + versions/）
     ├── paper.tex / paper.pdf / references.bib
     └── versions/             ← 历史版本 + review 反馈（只增不删）
 ```
@@ -62,7 +62,7 @@
 | `解决方案/` 内 `01/02/03` | 流程二 | 目录内独立编号，与根目录 `01_/02_` 不混用 |
 | `figures/`（根目录） | 科研插图工具 | **示意图**（结构/流程/机理，可编辑源 + 矢量导出） |
 | `implementation/figures/` | 流程三 | **实验数据图**（折线/柱状/热图等，代码自动生成）——两类图不混放 |
-| `thesis/` | 流程四 | 论文工作目录（模板整体复制 + 论文 + 版本存档）；素材从 `implementation/{results,figures,tables}` 与根目录 `figures/` 引用 |
+| `thesis/` | 流程四 | 论文工作目录（`template/` 原始模板参考只读 + 工作副本 + 论文 + 版本存档）；素材从 `implementation/{results,figures,tables}` 与根目录 `figures/` 引用 |
 | `thesis/`（根目录） | 流程四 | 论文 LaTeX 模板固定目录：用户模板或默认模板统一放这，目录名固定 `thesis` |
 
 ## 4. 文档索引
